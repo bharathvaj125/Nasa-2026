@@ -245,3 +245,10 @@ table.t td.num { font-family: var(--mono); text-align: right; white-space: nowra
   .score-ring { margin: 0 auto; }
 }
 .dash > * { flex-shrink: 0; }
+
+.mbar { display: none; }
+@media (max-width: 1100px) {
+  .mbar { display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 60; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap;
+    padding: 8px 12px; background: rgba(6, 9, 20, .94); backdrop-filter: blur(10px); border-top: 1px solid var(--border2); font-family: var(--mono); font-size: 12.5px; }
+  .container { padding-bottom: 76px; }
+}

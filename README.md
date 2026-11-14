@@ -9,6 +9,18 @@ Design a complete space mission from concept to operations. Choose science goals
 
 ---
 
+![Home](docs/deck/img/01-home.png)
+
+| Design lab | 3D orbit view | Flight with explained events |
+| --- | --- | --- |
+| ![Design lab](docs/deck/img/05-point-design-lunar.png) | ![Orbit](docs/deck/img/04-architecture-orbit.png) | ![Flight](docs/deck/img/06-flight.png) |
+
+| Debrief report | Team of four |
+| --- | --- |
+| ![Report](docs/deck/img/07-report-top.png) | ![Team](docs/deck/img/12-team-lab.png) |
+
+---
+
 ## What the challenge asked for, and where to find it
 
 | Challenge idea | In the game |

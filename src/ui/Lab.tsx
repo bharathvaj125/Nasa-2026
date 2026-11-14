@@ -46,6 +46,7 @@ export function Lab() {
           <div className="muted" style={{ fontSize: 13, margin: '-4px 0 12px' }}>
             Scenario: <b style={{ color: 'var(--text)' }}>{scn.title}</b> · NASA's Mission Design Lab matures every concept through steps like these, trading options before committing to hardware.
           </div>
+          <NextHint />
           {step === 0 && <Concept />}
           {step === 1 && <Architecture />}
           {step === 2 && <Spacecraft />}
@@ -58,6 +59,44 @@ export function Lab() {
         <Dashboard onCompare={() => { markCompare(); setCmp(true); }} />
       </div>
       {cmp && <CompareModal onClose={() => setCmp(false)} />}
+      <MobileBar />
+    </div>
+  );
+}
+
+/** Plain-language coaching: what to do next, based on the current design. */
+function NextHint() {
+  const ev = useEvaluation();
+  const design = useGame((s) => s.design);
+  const step = useGame((s) => s.step);
+  const first = ev.constraints.find((c) => c.severity === 'error');
+  let text: string;
+  let tone = 'cyan';
+  if (design.objectiveIds.length === 0) text = 'Start in CML 1: choose at least one science objective (the primary one is the headline goal).';
+  else if (design.instrumentIds.length === 0) text = 'Next: open CML 3 and add an instrument that serves your objective. Instruments are the reason the mission exists.';
+  else if (first) { text = `Blocker: ${first.title}. ${first.fix ?? 'Open the red check on the dashboard to see why.'}`; tone = 'red'; }
+  else if (ev.scienceFrac < 0.3) { text = 'The design can fly, but science is low. Read each objective on the dashboard: the grey line under it names what limits it.'; tone = 'amber'; }
+  else if (step < 3) text = 'Looking healthy. Check CML 4 for ground stations and margins, then press Launch mission.';
+  else text = 'Ready when you are: press Launch mission. You can always come back and improve the design.';
+  return (
+    <div className={`pill ${tone}`} style={{ whiteSpace: 'normal', borderRadius: 12, padding: '8px 14px', marginBottom: 12, fontSize: 13.5, display: 'flex' }} role="note">
+      <b style={{ marginRight: 6 }}>Next step:</b> {text}
+    </div>
+  );
+}
+
+/** Sticky summary on small screens, where the full dashboard is far below the controls. */
+function MobileBar() {
+  const ev = useEvaluation();
+  const errors = ev.constraints.filter((c) => c.severity === 'error').length;
+  const tone = (ok: boolean, warn: boolean) => (ok ? 'var(--green)' : warn ? 'var(--amber)' : 'var(--red)');
+  return (
+    <div className="mbar" role="status" aria-label="Mission summary">
+      <span style={{ color: tone(ev.mass.marginPct >= 10, ev.mass.marginPct >= 0) }}>Mass {ev.mass.marginPct.toFixed(0)}%</span>
+      <span style={{ color: tone(ev.power.marginPct >= 10, ev.power.marginPct >= 0) }}>Power {ev.power.marginPct.toFixed(0)}%</span>
+      <span style={{ color: tone(ev.data.returnFrac >= 0.85, ev.data.returnFrac >= 0.6) }}>Data {(ev.data.returnFrac * 100).toFixed(0)}%</span>
+      <span style={{ color: tone(ev.cost.totalM <= ev.cost.budgetM * 0.92, ev.cost.totalM <= ev.cost.budgetM) }}>${fmt(ev.cost.totalM)}M</span>
+      <button className="btn sm primary" onClick={() => document.querySelector('.dash')?.scrollIntoView({ behavior: 'smooth' })}>{errors ? `${errors} blocker${errors > 1 ? 's' : ''}` : 'Dashboard / Launch'}</button>
     </div>
   );
 }

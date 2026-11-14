@@ -74,7 +74,7 @@ npm run build      # type-check + production build
 
 | Variable | Purpose |
 | --- | --- |
-| `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` | Enables **team rooms across devices** using Supabase Realtime *broadcast* channels (no database tables are used). Without them, team rooms sync across tabs of the same browser. |
+| `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` | Optional. Uses Supabase Realtime *broadcast* channels (no database tables) for team rooms. Without them the game uses **peer-to-peer WebRTC (PeerJS)**: the room host's browser relays messages, so teammates on other devices can join with the invite link. If neither can connect, rooms sync across tabs of the same browser. |
 | `VITE_NASA_API_KEY` | Your own api.nasa.gov key (defaults to `DEMO_KEY`). |
 
 ## Project layout
@@ -102,6 +102,6 @@ In line with the Space Apps rules, we disclose that **SI tools (a large language
 * NASA DONKI space-weather API: https://api.nasa.gov/
 * NASA Exoplanet Archive: https://exoplanetarchive.ipac.caltech.edu/
 * NASA Visible Earth / Blue Marble imagery (public domain), loaded at runtime from the `three-globe` package assets on unpkg: https://github.com/vasturiano/three-globe
-* Libraries: React, Vite, Three.js, Zustand, Supabase JS (all open source, MIT licence).
+* Libraries: React, Vite, Three.js, Zustand, PeerJS, Supabase JS (all open source, MIT licence). Peer-to-peer connection set-up uses the public PeerJS broker.
 * Fonts: Inter, Space Grotesk, JetBrains Mono (Google Fonts, SIL Open Font Licence).
 * Reference missions: Landsat 9 (landsat.gsfc.nasa.gov), LRO (science.nasa.gov/mission/lro), MRO (science.nasa.gov/mission/mars-reconnaissance-orbiter), JWST (science.nasa.gov/mission/webb).

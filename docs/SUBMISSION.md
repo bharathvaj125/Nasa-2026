@@ -30,7 +30,7 @@ Source code: `https://github.com/bharathvaj125/Nasa-2026`
 
 **NASA and agency data.** Live NASA DONKI (coronal mass ejections, geomagnetic storms) sets a solar-activity factor in every flight. Mission structure uses NASA Concept Maturity Levels, the Mission Design Lab process and the four mission segments. Designs can be exported as a starter script for NASA GMAT. Reference missions: Landsat 9, LRO, MRO, JWST. Earth imagery: NASA Blue Marble.
 
-**Tools.** TypeScript, React, Vite, Three.js (3D orbit and spacecraft views), Zustand, Supabase Realtime (optional, for cross-device teams), Vitest (16 physics and evaluation tests), GitHub Pages.
+**Tools.** TypeScript, React, Vite, Three.js (3D orbit and spacecraft views), Zustand, PeerJS / WebRTC peer-to-peer rooms (cross-device teams; optional Supabase Realtime), Vitest (16 physics and evaluation tests), GitHub Pages.
 
 **Limitations (honest).** Numbers are rounded educational approximations of public references, not mission-planning data. The GMAT export follows the documented script language but has not been executed inside GMAT.
 
@@ -70,7 +70,8 @@ Select the options for **code generation / coding assistance** (and **documentat
 | Vite | https://vite.dev |
 | Three.js | https://threejs.org |
 | Zustand | https://github.com/pmndrs/zustand |
-| Supabase JS (realtime team rooms) | https://supabase.com/docs/reference/javascript |
+| PeerJS (peer-to-peer team rooms) | https://peerjs.com |
+| Supabase JS (optional realtime transport) | https://supabase.com/docs/reference/javascript |
 | Google Fonts: Inter, Space Grotesk, JetBrains Mono | https://fonts.google.com |
 
 ## Checkboxes

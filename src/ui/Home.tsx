@@ -3,7 +3,6 @@ import { SCENARIOS } from '../data/scenarios';
 import { budgetFor, fmt } from '../engine/evaluate';
 import { useGame } from '../state/store';
 import type { Difficulty } from '../engine/types';
-import { hasSupabase } from '../team/net';
 import { Modal, Panel, Pill } from './kit';
 
 const LEVEL_TONE = { beginner: 'green', intermediate: 'amber', advanced: 'red' } as const;
@@ -112,7 +111,6 @@ export function Home() {
 
         <div className="footer">
           Built for the NASA Space Apps Challenge 2026 by Team CATALYX. Mission numbers are rounded educational approximations of public NASA, ESA and ISRO references, not mission-planning data. No NASA logos or branding are used.
-          {!hasSupabase && <div style={{ marginTop: 4 }}>Team rooms sync across browser tabs in this build.</div>}
         </div>
       </div>
 

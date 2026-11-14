@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { ROLES, ROLE_ORDER } from '../data/roles';
 import { getScenario } from '../data/scenarios';
-import { hasSupabase } from '../team/net';
 import { useGame } from '../state/store';
 import type { RoleId } from '../engine/types';
 import { Panel, Pill } from './kit';
@@ -33,7 +32,7 @@ export function TeamDock() {
     <div className="teamdock" style={{ marginBottom: 14 }}>
       <header>
         <b style={{ fontFamily: 'var(--head)' }}>Crew room {team.code}</b>
-        <Pill tone={team.status === 'online' ? 'green' : 'amber'}>{team.status === 'online' ? (team.kind === 'supabase' ? 'Online · live sync' : 'Online · this browser only') : team.status}</Pill>
+        <Pill tone={team.status === 'online' ? 'green' : 'amber'}>{team.status === 'online' ? (team.kind === 'local' ? 'Online · this browser only' : team.kind === 'p2p' ? 'Online · peer-to-peer' : 'Online · live sync') : team.status}</Pill>
         <span className="muted" style={{ fontSize: 13 }}>You: {me?.name}</span>
         <RoleBadges roles={me?.roles ?? []} />
         <span className="spacer" />
@@ -113,12 +112,13 @@ export function Lobby() {
   return (
     <div className="container" style={{ maxWidth: 1100 }}>
       <Panel title={<>Crew room <span className="mono" style={{ color: 'var(--cyan)', letterSpacing: '.2em' }}>{team.code}</span></>} sub={`${scn.title}: up to four people design one mission together`}
-        right={<><Pill tone={team.status === 'online' ? 'green' : 'amber'}>{team.status}</Pill><Pill tone={team.kind === 'supabase' ? 'cyan' : 'violet'}>{team.kind === 'supabase' ? 'Live sync across devices' : 'Same-browser sync'}</Pill></>}>
+        right={<><Pill tone={team.status === 'online' ? 'green' : 'amber'}>{team.status}</Pill><Pill tone={team.kind === 'local' ? 'violet' : 'cyan'}>{team.kind === 'local' ? 'Same-browser sync' : team.kind === 'p2p' ? 'Peer-to-peer across devices' : 'Live sync across devices'}</Pill></>}>
         <div className="row">
           <input className="input" readOnly value={link} onFocus={(e) => e.currentTarget.select()} aria-label="Invite link" />
           <button className="btn" onClick={() => { navigator.clipboard?.writeText(link); setCopied(true); setTimeout(() => setCopied(false), 1500); }}>{copied ? 'Copied!' : 'Copy invite link'}</button>
         </div>
-        {!hasSupabase && <div className="muted" style={{ fontSize: 13, marginTop: 8 }}>This build runs without a realtime server, so teammates must open the invite link in another tab of <b>this</b> browser. The hosted version syncs across devices.</div>}
+        {team.kind === 'local' && <div className="muted" style={{ fontSize: 13, marginTop: 8 }}>Could not reach the peer-to-peer service, so this room only syncs between tabs of <b>this</b> browser.</div>}
+        {team.kind === 'p2p' && <div className="muted" style={{ fontSize: 13, marginTop: 8 }}>Teammates connect directly to the host's browser, so keep this tab open while you play.</div>}
       </Panel>
 
       <h3 style={{ margin: '18px 0 10px' }}>Choose your role</h3>

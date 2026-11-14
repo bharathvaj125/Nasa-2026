@@ -34,7 +34,7 @@ function loadPersist(): Persist {
 function savePersist(p: Persist) { try { localStorage.setItem(LS, JSON.stringify(p)); } catch { /* ignore */ } }
 
 interface TeamState {
-  code: string; me: string; myName: string; members: Record<string, MemberInfo>; chat: ChatMsg[]; reqs: Req[]; status: 'connecting' | 'online' | 'offline'; kind: 'supabase' | 'local';
+  code: string; me: string; myName: string; members: Record<string, MemberInfo>; chat: ChatMsg[]; reqs: Req[]; status: 'connecting' | 'online' | 'offline'; kind: 'supabase' | 'p2p' | 'local';
   isHost: boolean; started: boolean;
 }
 
@@ -258,9 +258,9 @@ export const useGame = create<Game>((set, get) => {
     transport?.close();
     transport = openTransport(code, onMsg, (status) => {
       const g = get();
-      if (g.team) set({ team: { ...g.team, status } });
+      if (g.team) set({ team: { ...g.team, status, kind: transport?.kind ?? g.team.kind } });
       if (status === 'online') { hello(); if (scenarioId === null) send('sync', {}); }
-    });
+    }, scenarioId !== null);
     set({
       team: { code, me, myName: name, members, chat: [], reqs: [], status: 'connecting', kind: transport.kind, isHost: scenarioId !== null, started: false },
       fieldTs: {}, screen: 'lobby',

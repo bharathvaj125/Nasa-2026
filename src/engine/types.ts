@@ -2,7 +2,8 @@
 
 export type BodyId = 'earth' | 'moon' | 'mars' | 'l2';
 export type RoleId = 'lead' | 'ops' | 'engineer' | 'science';
-export type Difficulty = 'cadet' | 'engineer' | 'director';
+export type Difficulty = 'cadet' | 'engineer' | 'director' | 'sandbox';
+export type BudgetLevel = Exclude<Difficulty, 'sandbox'>;
 
 export type BusClass = 'cubesat' | 'smallsat' | 'standard' | 'flagship';
 export type SolarCell = 'silicon' | 'gaas' | 'triple';
@@ -134,7 +135,7 @@ export interface Scenario {
   story: string;
   objectives: Objective[];
   instrumentIds: string[];
-  budgetM: Record<Difficulty, number>;
+  budgetM: Record<BudgetLevel, number>;
   minLifeMonths: number;
   maxLifeMonths: number;
   defaultLifeMonths: number;

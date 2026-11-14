@@ -83,7 +83,7 @@ function Concept() {
       </Panel>
 
       <Panel title="Mission objectives" sub="Pick what science you want. More objectives mean more points, but also more instruments, data and cost.">
-        <div className="opts" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(300px,1fr))' }}>
+        <div className="opts" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(min(100%,300px),1fr))' }}>
           {scn.objectives.map((o) => {
             const on = design.objectiveIds.includes(o.id);
             const req = [o.needResolutionM && `resolution ≤ ${o.needResolutionM >= 1000 ? o.needResolutionM / 1000 + ' km' : o.needResolutionM + ' m'}`, o.needRevisitDays && `revisit ≤ ${o.needRevisitDays} days`, o.needLatDeg && `reach ${o.needLatDeg}° latitude`, o.needApertureM && `mirror ≥ ${o.needApertureM} m`, o.needDownlinkGBday && `≥ ${o.needDownlinkGBday} GB/day downlink`, `${o.requiredMonths} months of operations`].filter(Boolean) as string[];
@@ -138,7 +138,7 @@ function Architecture() {
   return (
     <div className="col" style={{ gap: 14 }}>
       <Panel title="Launch vehicle trade study" sub="Compare rockets for this destination. The best choice is the cheapest one that carries your spacecraft with margin.">
-        <div className="opts" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(250px,1fr))' }}>
+        <div className="opts" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(min(100%,250px),1fr))' }}>
           {LAUNCHERS.map((lv) => {
             const cap = launchCapacityKg(scn, { ...design, launcherId: lv.id });
             const cost = lv.perKgM ? Math.max(0.2, lv.perKgM * ev.mass.wetKg) : lv.costM;
@@ -162,7 +162,7 @@ function Architecture() {
         </div>
       </Panel>
 
-      <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(340px,1fr))' }}>
+      <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,340px),1fr))' }}>
         <Panel title={l2 ? 'Sun-Earth L2 halo orbit' : 'Orbit design'}>
           {l2 ? (
             <div>
@@ -233,7 +233,7 @@ function Spacecraft() {
       <div style={{ height: 340 }}><CraftScene design={design} ev={ev} /></div>
 
       <Panel title="Science payload" sub="Each instrument adds science, and mass, power, data and cost.">
-        <div className="opts" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(300px,1fr))' }}>
+        <div className="opts" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(min(100%,300px),1fr))' }}>
           {insts.map((i) => {
             const on = design.instrumentIds.includes(i.id);
             const objs = Object.entries(i.serves).map(([id, w]) => `${scn.objectives.find((o) => o.id === id)?.title ?? id} ${Math.round(w * 100)}%`);
@@ -256,7 +256,7 @@ function Spacecraft() {
         </div>
       </Panel>
 
-      <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(380px,1fr))' }}>
+      <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,380px),1fr))' }}>
         <Panel title="Bus & structure">
           <Choice<BusClass> path="bus.busClass" label="Bus class" value={b.busClass} options={(Object.values(BUS_CLASSES)).map((c) => ({ value: c.id, label: c.name, desc: c.blurb, stats: [`≤ ${fmt(c.maxDryKg)} kg dry`, `array ≤ ${c.maxArrayM2} m²`] }))} />
           <Learn id="bus" title="Bus classes"><p>{bus.learn}</p></Learn>
@@ -303,7 +303,7 @@ function GroundReview() {
       <Panel title="Ground segment" sub="NASA splits a mission into launch, space, ground and user segments. This is the ground segment: how you talk to your spacecraft.">
         {earth ? (
           <>
-            <div className="opts" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(250px,1fr))' }}>
+            <div className="opts" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(min(100%,250px),1fr))' }}>
               {STATIONS.map((s) => {
                 const on = design.stationIds.includes(s.id);
                 return (

@@ -77,7 +77,7 @@ export function Report() {
         </div>
       </div>
 
-      <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(380px,1fr))', marginTop: 16 }}>
+      <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,380px),1fr))', marginTop: 16 }}>
         <Panel title="Score breakdown" sub="What earned (and lost) points">
           <HBar label="Science return" value={score.science} max={45} />
           <HBar label="Engineering margins" value={score.margins} max={20} color="#b79cff" />
@@ -103,7 +103,7 @@ export function Report() {
         <div className="col">{insights.map((i, k) => <div key={k} className={`insight ${i.severity}`}><b>{i.title}</b><p>{i.detail}</p>{i.fix && <p className="fix">Try: {i.fix}</p>}</div>)}</div>
       </Panel>
 
-      <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(380px,1fr))', marginTop: 16 }}>
+      <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,380px),1fr))', marginTop: 16 }}>
         <Panel title="Science objectives">
           <table className="t"><thead><tr><th>Objective</th><th className="num">Expected</th><th className="num">This flight</th></tr></thead>
             <tbody>{ev.objectives.map((o) => (
@@ -127,7 +127,7 @@ export function Report() {
 
       {team?.started && (
         <Panel title="Team priorities" sub="Each role had a private goal. Teamwork scores how many the crew satisfied together." className="section">
-          <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))' }}>
+          <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,240px),1fr))' }}>
             {ROLE_ORDER.map((r) => (
               <div key={r} className="rolecard" style={{ borderColor: priorities[r].met ? 'var(--green)' : 'var(--border)' }}>
                 <h4 style={{ color: ROLES[r].color }}>{ROLES[r].name}</h4>

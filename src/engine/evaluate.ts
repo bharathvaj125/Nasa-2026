@@ -20,7 +20,8 @@ export interface Env {
 }
 export const DEFAULT_ENV: Env = { solarActivity: 1, difficulty: 'engineer' };
 
-const MGA: Record<Difficulty, number> = { cadet: 0.3, engineer: 0.25, director: 0.2 };
+const MGA: Record<Difficulty, number> = { cadet: 0.3, engineer: 0.25, director: 0.2, sandbox: 0.25 };
+export const budgetFor = (scn: Scenario, d: Difficulty) => (d === 'sandbox' ? scn.budgetM.cadet * 20 : scn.budgetM[d]);
 const THERMAL_RANK: Record<ThermalType, number> = { none: 0, passive: 1, active: 2 };
 
 export function fnv1a(str: string): string {
@@ -457,7 +458,7 @@ export function evaluate(design: Design, env: Env = DEFAULT_ENV): Evaluation {
   );
   if (slipPenaltyM > 0) lines.push({ label: 'Launch-window slip penalty', valueM: slipPenaltyM, group: 'program' });
   const totalM = hardwareM + integrationM + programM + reserveM + launchM + opsM + slipPenaltyM;
-  const cost: CostBreakdown = { lines, hardwareM, integrationM, programM, reserveM, launchM, opsM, totalM, budgetM: scn.budgetM[env.difficulty], slipPenaltyM };
+  const cost: CostBreakdown = { lines, hardwareM, integrationM, programM, reserveM, launchM, opsM, totalM, budgetM: budgetFor(scn, env.difficulty), slipPenaltyM };
 
   // ---------- 11. reliability ----------
   const baseTransit = { earth: 1, moon: 0.97, mars: 0.9, l2: 0.96 }[scn.destination];

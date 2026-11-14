@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { SCENARIOS } from '../data/scenarios';
-import { fmt } from '../engine/evaluate';
+import { budgetFor, fmt } from '../engine/evaluate';
 import { useGame } from '../state/store';
 import type { Difficulty } from '../engine/types';
 import { hasSupabase } from '../team/net';
@@ -11,6 +11,7 @@ const DIFF: { id: Difficulty; name: string; blurb: string }[] = [
   { id: 'cadet', name: 'Cadet', blurb: 'Bigger budget and a 30% mass growth allowance. Learn the ropes.' },
   { id: 'engineer', name: 'Engineer', blurb: 'The standard challenge: realistic budgets and 25% growth allowance.' },
   { id: 'director', name: 'Flight Director', blurb: 'Tight budget, thin margins. Every kilogram counts.' },
+  { id: 'sandbox', name: 'Sandbox', blurb: 'No practical budget limit: experiment freely with any hardware. Physics still applies.' },
 ];
 
 export function Home() {
@@ -64,7 +65,7 @@ export function Home() {
               <h3>{s.title}</h3>
               <span className="muted" style={{ fontSize: 14 }}>{s.story.split('.').slice(0, 2).join('.') + '.'}</span>
               <div className="meta">
-                <Pill>Budget ${fmt(s.budgetM[difficulty])}M</Pill>
+                <Pill>{difficulty === 'sandbox' ? 'Sandbox: no budget cap' : `Budget $${fmt(s.budgetM[difficulty])}M`}</Pill>
                 <Pill>{s.objectives.length} objectives</Pill>
                 <Pill tone="cyan">Like {s.reference.name.split('(')[0].trim()}</Pill>
                 {best[s.id] !== undefined && <Pill tone="green">Best {best[s.id].toFixed(0)}</Pill>}
@@ -73,12 +74,12 @@ export function Home() {
           ))}
         </div>
 
-        <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(340px,1fr))', marginTop: 24 }}>
+        <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,340px),1fr))', marginTop: 24 }}>
           <Panel title="2. Choose your challenge level">
             <div className="col">
               {DIFF.map((d) => (
                 <button key={d.id} className={`opt ${difficulty === d.id ? 'on' : ''}`} onClick={() => setDifficulty(d.id)} aria-pressed={difficulty === d.id}>
-                  <b>{d.name} <span className="muted" style={{ fontWeight: 400 }}>· ${fmt(scn.budgetM[d.id])}M budget</span></b><small>{d.blurb}</small>
+                  <b>{d.name} <span className="muted" style={{ fontWeight: 400 }}>· {d.id === 'sandbox' ? 'no cap' : `$${fmt(budgetFor(scn, d.id))}M budget`}</span></b><small>{d.blurb}</small>
                 </button>
               ))}
             </div>

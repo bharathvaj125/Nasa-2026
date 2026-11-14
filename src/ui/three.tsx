@@ -281,7 +281,7 @@ export function buildCraft(design: Design): { group: THREE.Group; radius: number
     const barrel = new THREE.Mesh(new THREE.CylinderGeometry(D * 0.55, D * 0.55, D * 0.9, 24, 1, true), new THREE.MeshStandardMaterial({ color: 0x555a66, side: THREE.DoubleSide, metalness: 0.5, roughness: 0.6 }));
     barrel.rotation.x = Math.PI / 2; barrel.position.set(0, 0, bd / 2 + D * 0.5);
     group.add(barrel);
-    const hexMat = new THREE.MeshStandardMaterial({ color: 0xf0c04a, metalness: 1, roughness: 0.15 });
+    const hexMat = new THREE.MeshStandardMaterial({ color: 0xf0c04a, metalness: 0.35, roughness: 0.3, emissive: 0x6b4a08, emissiveIntensity: 0.6 });
     if (D >= 2.5) {
       const cell = D / 5;
       const coords: [number, number][] = [];

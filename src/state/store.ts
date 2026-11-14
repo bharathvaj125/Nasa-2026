@@ -126,9 +126,17 @@ function buildContext(g: Game, ev: Evaluation, mc: MonteCarlo): ScoreContext {
   };
 }
 
-function computeResult(g: Game, design: Design, seed: number): Result {
+function computeResult(g: Game, design: Design, seed: number, representative = false): Result {
   const ev = evaluate(design, g.env);
   const mc = monteCarlo(design, g.env, ev, 300);
+  if (representative) {
+    // The first flight shown is a typical one: pick the first seed whose outcome matches the most likely outcome.
+    const modal = mc.pFull >= mc.pPartial && mc.pFull >= mc.pFail ? 'full' : mc.pPartial >= mc.pFail ? 'partial' : 'failed';
+    for (let i = 0; i < 60; i++) {
+      const s = (seed + i * 7919) >>> 0;
+      if (runFlight(design, g.env, ev, s, false).outcome === modal) { seed = s; break; }
+    }
+  }
   const run = runFlight(design, g.env, ev, seed, true);
   const score = scoreMission(ev, mc, buildContext(g, ev, mc));
   const insights = buildInsights(design, ev, mc);
@@ -271,6 +279,7 @@ export const useGame = create<Game>((set, get) => {
   };
 
   const finish = (g: Game, r: Result) => {
+    if (g.difficulty === 'sandbox') return; // sandbox runs do not count toward best scores
     const best = { ...g.best };
     if (!best[r.design.scenarioId] || r.score.total > best[r.design.scenarioId]) best[r.design.scenarioId] = r.score.total;
     set({ best });
@@ -337,10 +346,10 @@ export const useGame = create<Game>((set, get) => {
       const its = g.iterations.includes(key) ? g.iterations : [...g.iterations, key];
       const seed = (seedFromHash(ev.designHash) + attempt * 104729) >>> 0;
       set({ iterations: its, attempt });
-      const res = computeResult({ ...get() }, g.design, seed);
+      const res = computeResult({ ...get() }, g.design, seed, true);
       set({ result: res, screen: 'flight' });
       finish(get(), res);
-      if (g.team?.started) send('launch', { design: g.design, seed, attempt });
+      if (g.team?.started) send('launch', { design: g.design, seed: res.seed, attempt });
     },
     refly() {
       const g = get();

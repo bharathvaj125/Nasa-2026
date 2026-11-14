@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>CATALYX Mission Design Lab - demo deck</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<style>
+@page { size: 1600px 900px; margin: 0; }
+* { box-sizing: border-box; }
+body { margin: 0; background: #060914; font-family: 'Inter', sans-serif; color: #e9edff; }
+.slide { width: 1600px; height: 900px; position: relative; overflow: hidden; page-break-after: always; break-after: page; padding: 64px 80px;
+  background: radial-gradient(1100px 520px at 85% -10%, rgba(94,231,255,.16), transparent 60%), radial-gradient(900px 500px at 0% 110%, rgba(183,156,255,.16), transparent 60%), #060914; }
+h1, h2 { font-family: 'Space Grotesk', sans-serif; margin: 0; letter-spacing: -.02em; }
+h1 { font-size: 84px; line-height: 1; } h2 { font-size: 56px; line-height: 1.05; max-width: 1440px; }
+.eyebrow { color: #5ee7ff; letter-spacing: .2em; text-transform: uppercase; font-weight: 600; font-size: 22px; margin-bottom: 18px; }
+.grad { background: linear-gradient(90deg, #5ee7ff, #b79cff 60%, #ffb454); -webkit-background-clip: text; background-clip: text; color: transparent; }
+p, li { font-size: 30px; line-height: 1.4; color: #c4cdf0; margin: 0; }
+ul.side { max-width: 660px; } ul.side li { font-size: 26px; }
+ul { margin: 22px 0 0; padding-left: 34px; display: flex; flex-direction: column; gap: 14px; }
+li b, p b { color: #fff; }
+.shot { position: absolute; border-radius: 18px; border: 1px solid #32417a; box-shadow: 0 24px 70px rgba(0,0,0,.6); }
+.foot { position: absolute; left: 80px; right: 80px; bottom: 28px; font-size: 20px; color: #66739e; display: flex; justify-content: space-between; }
+.cols { display: grid; grid-template-columns: repeat(4, 1fr); gap: 22px; margin-top: 34px; }
+.card { background: #0e152b; border: 1px solid #25315a; border-radius: 18px; padding: 22px; }
+.card b { display: block; font-family: 'Space Grotesk', sans-serif; font-size: 30px; color: #fff; margin: 6px 0; }
+.card span { font-size: 23px; color: #94a0c9; line-height: 1.35; display: block; }
+.card i { font-style: normal; font-family: monospace; color: #ffb454; font-size: 22px; }
+</style></head><body>
+
+<section class="slide">
+  <div class="eyebrow">NASA Space Apps Challenge 2026 &middot; Space Mission Design Game</div>
+  <h1>CATALYX<br><span class="grad">Mission Design Lab</span></h1>
+  <p style="margin-top:34px;max-width:720px;font-size:36px;color:#fff">Design a space mission. Then fly it.</p>
+  <p style="margin-top:34px;max-width:760px"><b>Team:</b> Project CATALYX<br><b>Members:</b> Bharathvaj S &middot; [add teammates here]<br><b>Challenge:</b> Space Mission Design Game</p>
+  <img class="shot" src="img/01-home.png" style="right:-70px;top:330px;width:820px;transform:rotate(-2deg)">
+  <div class="foot"><span>Play: bharathvaj125.github.io/Nasa-2026</span><span>Code: github.com/bharathvaj125/Nasa-2026</span></div>
+</section>
+
+<section class="slide">
+  <div class="eyebrow">The challenge</div>
+  <h2>Students can't <span class="grad">feel</span> the trade-offs of a space mission</h2>
+  <ul style="max-width:860px">
+    <li>A better instrument adds <b>mass, power, data and cost</b>, and each changes the rocket, the orbit and the radio.</li>
+    <li>Tools teach one topic at a time: orbits <i>or</i> rockets <i>or</i> spacecraft. Never the whole system.</li>
+    <li>So decisions stay abstract, and students rarely see a mission <b>fail and learn why</b>.</li>
+  </ul>
+  <p style="margin-top:46px;max-width:860px;color:#fff;font-size:34px">Our answer: a game where every decision has a consequence you can measure, simulate and discuss.</p>
+  <img class="shot" src="img/09-point-design-l2.png" style="right:-120px;bottom:-40px;width:760px;transform:rotate(2deg)">
+  <div class="foot"><span>Challenge: Space Mission Design Game</span><span>2</span></div>
+</section>
+
+<section class="slide">
+  <div class="eyebrow">Our solution</div>
+  <h2>Design, fly and debrief <span class="grad">a complete mission</span></h2>
+  <div class="cols">
+    <div class="card"><i>CML 1</i><b>Concept</b><span>Pick science goals and success criteria.</span></div>
+    <div class="card"><i>CML 2</i><b>Architecture</b><span>Trade rockets and orbits.</span></div>
+    <div class="card"><i>CML 3</i><b>Point design</b><span>Instruments, power, radio, pointing, propulsion.</span></div>
+    <div class="card"><i>CML 4</i><b>Ground &amp; review</b><span>Stations, margins, go for launch.</span></div>
+  </div>
+  <img class="shot" src="img/04-architecture-orbit.png" style="left:80px;bottom:64px;width:700px">
+  <img class="shot" src="img/06-flight.png" style="left:810px;bottom:64px;width:710px">
+  <div class="foot"><span>4 scenarios: Earth, Moon, Mars, Sun-Earth L2 &middot; 3 difficulty levels + sandbox</span><span>3</span></div>
+</section>
+
+<section class="slide">
+  <div class="eyebrow">Real physics &middot; Validity</div>
+  <h2>Everything is <span class="grad">coupled</span>, and checked</h2>
+  <ul class="side">
+    <li><b>Rocket equation</b> sizes propellant from the delta-v budget; launch capacity is checked against the orbit.</li>
+    <li><b>Link budget in dB</b> from distance, dish, band, power and pointing.</li>
+    <li><b>Eclipse, battery and ground contacts</b> from propagated orbits.</li>
+    <li><b>300 simulated flights</b> with failures, storms and cost growth: the score is the average, not luck.</li>
+    <li>Unit-tested against textbook values.</li>
+  </ul>
+  <img class="shot" src="img/05-point-design-lunar.png" style="right:40px;top:120px;width:760px">
+  <img class="shot" src="img/07-report-top.png" style="right:200px;bottom:60px;width:640px">
+  <div class="foot"><span>Open source: src/engine in the repository</span><span>4</span></div>
+</section>
+
+<section class="slide">
+  <div class="eyebrow">Relevance &middot; NASA data and methods</div>
+  <h2>NASA is <span class="grad">built into</span> the game</h2>
+  <ul class="side">
+    <li><b>NASA DONKI (live):</b> recent solar eruptions set solar activity, which drives drag and radiation storms in every flight.</li>
+    <li><b>JPL Concept Maturity Levels &amp; Mission Design Lab</b> structure the four design steps.</li>
+    <li><b>Four mission segments</b> from NASA's systems-engineering guide.</li>
+    <li><b>GMAT export</b> to take your orbit into NASA's analysis tool.</li>
+    <li><b>Reference missions:</b> Landsat 9, LRO, MRO, JWST.</li>
+  </ul>
+  <img class="shot" src="img/10-l2-orbit.png" style="right:40px;top:200px;width:780px">
+  <img class="shot" src="img/03-lab-concept.png" style="right:200px;bottom:48px;width:600px">
+  <div class="foot"><span>Earth imagery: NASA Blue Marble (public domain)</span><span>5</span></div>
+</section>
+
+<section class="slide">
+  <div class="eyebrow">Collaboration &middot; up to 4 players</div>
+  <h2>One mission, <span class="grad">four roles</span></h2>
+  <ul class="side">
+    <li><b>Mission Lead</b>, <b>Launch &amp; Ops</b>, <b>Spacecraft Engineer</b>, <b>Science &amp; Comms</b>: each controls different decisions.</li>
+    <li>Live sync, chat, and <b>requests between roles</b>: the crew must negotiate.</li>
+    <li>Each role has a <b>private priority</b>; the team score rewards meeting them together.</li>
+    <li>Only the lead gives the final go for launch.</li>
+  </ul>
+  <img class="shot" src="img/12-team-lab.png" style="right:40px;top:110px;width:820px">
+  <img class="shot" src="img/11-team-lobby.png" style="right:300px;bottom:48px;width:540px">
+  <div class="foot"><span>Solo and team play &middot; invite link or 5-letter room code</span><span>6</span></div>
+</section>
+
+<section class="slide">
+  <div class="eyebrow">Impact &middot; Creativity</div>
+  <h2>Learn <span class="grad">why</span> a mission succeeds or fails</h2>
+  <ul class="side">
+    <li>The debrief explains each shortfall in numbers and suggests the fix.</li>
+    <li>"Why does this matter?" cards teach the rocket equation, link budget and margins in plain words.</li>
+    <li>Save, compare and share designs. Re-fly with new random events.</li>
+    <li>Free, in any browser, for classrooms and clubs.</li>
+  </ul>
+  <p style="margin-top:40px;color:#fff;font-size:34px">Play: <b>bharathvaj125.github.io/Nasa-2026</b></p>
+  <img class="shot" src="img/08-report-why.png" style="right:40px;top:120px;width:780px">
+  <div class="foot"><span>SI tools assisted with code (disclosed in the README). No NASA logos used.</span><span>7</span></div>
+</section>
+</body></html>

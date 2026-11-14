@@ -94,7 +94,7 @@ input, select, textarea { font-family: inherit; font-size: inherit; color: var(-
 .hero h1 em { font-style: normal; background: linear-gradient(90deg, var(--cyan), var(--violet) 60%, var(--amber)); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .hero p.lead { max-width: 740px; margin: 16px auto 0; color: var(--muted); font-size: 18px; }
 .eyebrow { text-transform: uppercase; letter-spacing: .18em; font-size: 12px; color: var(--cyan); font-weight: 600; }
-.scn-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 14px; }
+.scn-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 290px), 1fr)); gap: 14px; }
 .scn {
   text-align: left; padding: 16px; border-radius: 14px; border: 1px solid var(--border); background: linear-gradient(180deg, var(--surface2), var(--surface));
   display: flex; flex-direction: column; gap: 8px; transition: border-color .15s, transform .12s;
@@ -104,7 +104,7 @@ input, select, textarea { font-family: inherit; font-size: inherit; color: var(-
 .scn h3 { font-size: 19px; }
 .scn .tag { color: var(--cyan); font-size: 13px; }
 .scn .meta { display: flex; gap: 6px; flex-wrap: wrap; margin-top: auto; }
-.steps3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; }
+.steps3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr)); gap: 14px; }
 .stepcard { padding: 16px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); }
 .stepcard .n { font-family: var(--mono); color: var(--amber); font-size: 13px; }
 .stepcard h4 { margin: 4px 0 6px; font-size: 16px; }
@@ -133,7 +133,7 @@ input, select, textarea { font-family: inherit; font-size: inherit; color: var(-
 .lock { font-size: 11px; display: inline-flex; gap: 4px; align-items: center; padding: 1px 8px; border-radius: 999px; border: 1px solid; }
 .disabled-field { opacity: .55; }
 input[type='range'] { width: 100%; accent-color: var(--cyan); height: 28px; }
-.opts { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; }
+.opts { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 190px), 1fr)); gap: 8px; }
 .opt { text-align: left; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface2); display: flex; flex-direction: column; gap: 3px; }
 .opt:hover:not(:disabled) { border-color: var(--border2); }
 .opt.on { border-color: var(--cyan); background: rgba(94, 231, 255, .09); box-shadow: 0 0 0 1px var(--cyan) inset; }
@@ -192,7 +192,7 @@ input[type='range'] { width: 100%; accent-color: var(--cyan); height: 28px; }
 .rolecard h4 { font-size: 16px; }
 
 /* ---------- flight */
-.flight { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(320px, 1fr); gap: 16px; }
+.flight { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(min(100%, 320px), 1fr); gap: 16px; }
 @media (max-width: 1000px) { .flight { grid-template-columns: 1fr; } }
 .log { max-height: 520px; overflow: auto; display: flex; flex-direction: column; gap: 8px; padding-right: 4px; }
 .ev { padding: 10px 12px; border-radius: 10px; background: var(--surface2); border-left: 4px solid var(--border2); animation: slidein .35s ease both; }
@@ -231,3 +231,17 @@ table.t td.num { font-family: var(--mono); text-align: right; white-space: nowra
   background-image: radial-gradient(1.2px 1.2px at 20% 30%, #fff, transparent), radial-gradient(1px 1px at 70% 20%, #cfe, transparent), radial-gradient(1.4px 1.4px at 45% 75%, #fff, transparent), radial-gradient(1px 1px at 85% 65%, #fde, transparent), radial-gradient(1px 1px at 10% 85%, #fff, transparent);
   background-size: 420px 420px; }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+/* ---------- small screens */
+.panel { overflow-x: auto; }
+@media (max-width: 640px) {
+  .container { padding: 12px; }
+  .topbar { padding: 8px 12px; gap: 8px; flex-wrap: wrap; }
+  .grid[style*='repeat(4'], .grid[style*='repeat(3'] { grid-template-columns: repeat(2, 1fr) !important; }
+  .hero { padding: 28px 12px 12px; }
+  .dash { position: static; max-height: none; }
+  .flight, .lab { grid-template-columns: 1fr; }
+  table.t { font-size: 13px; }
+  .score-ring { margin: 0 auto; }
+}
+.dash > * { flex-shrink: 0; }

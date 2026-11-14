@@ -42,7 +42,7 @@ export function TeamDock() {
         <button className="btn sm ghost" onClick={() => setOpen(!open)}>{open ? 'Hide' : 'Show'}</button>
       </header>
       {open && (
-        <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 0 }}>
+        <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,280px),1fr))', gap: 0 }}>
           <div className="members">
             {members.map((m) => (
               <div key={m.id} className="member">
@@ -122,7 +122,7 @@ export function Lobby() {
       </Panel>
 
       <h3 style={{ margin: '18px 0 10px' }}>Choose your role</h3>
-      <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))' }}>
+      <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,240px),1fr))' }}>
         {ROLE_ORDER.map((r) => {
           const o = owner(r);
           const mine = me?.roles.includes(r);
@@ -142,7 +142,7 @@ export function Lobby() {
       </div>
 
       <h3 style={{ margin: '18px 0 10px' }}>Crew ({members.length})</h3>
-      <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))' }}>
+      <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,240px),1fr))' }}>
         {members.map((m) => <div key={m.id} className="member"><b>{m.name}{m.id === team.me ? ' (you)' : ''}</b><span className="row" style={{ gap: 4 }}><RoleBadges roles={m.roles} /></span></div>)}
       </div>
 

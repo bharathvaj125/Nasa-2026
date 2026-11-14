@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { OWNER, ROLE_ORDER } from '../data/roles';
 import { getScenario } from '../data/scenarios';
 import { defaultDesign } from '../engine/defaults';
+import { EXAMPLES } from '../data/examples';
 import { DEFAULT_ENV, evaluate, type Env } from '../engine/evaluate';
 import { FALLBACK_WEATHER, fetchSpaceWeather, type SpaceWeather } from '../engine/nasa';
 import { buildInsights, emptyContext, monteCarlo, rolePriorities, runFlight, scoreMission, seedFromHash, type ScoreContext } from '../engine/simulate';
@@ -71,6 +72,7 @@ interface Game {
   launch(): void;
   refly(): void;
   saveDesign(): void;
+  loadExample(): void;
   loadDesign(id: string): void;
   deleteDesign(id: string): void;
   markCompare(): void;
@@ -360,6 +362,26 @@ export const useGame = create<Game>((set, get) => {
       const res = computeResult(get(), g.result.design, seed);
       set({ result: res, screen: 'flight' });
       if (g.team?.started) send('launch', { design: g.result.design, seed, attempt });
+    },
+    loadExample() {
+      const g = get();
+      const ex = EXAMPLES[g.design.scenarioId];
+      if (!ex) return;
+      if (g.team?.started && !g.team.isHost) return;
+      const design = { ...ex, bus: { ...ex.bus } };
+      set({ design });
+      if (g.team?.started) {
+        const ts = g.clock + 1;
+        const flat: Record<string, unknown> = {};
+        for (const [k, v] of Object.entries(design)) {
+          if (k === 'bus') for (const [bk, bv] of Object.entries(v as object)) flat[`bus.${bk}`] = bv;
+          else if (k !== 'scenarioId') flat[k] = v;
+        }
+        const fts = { ...g.fieldTs };
+        for (const k of Object.keys(flat)) fts[k] = [ts, g.team.me];
+        set({ clock: ts, fieldTs: fts });
+        transport?.send({ k: 'patch', from: g.team.me, ts, d: flat });
+      }
     },
     saveDesign() {
       const g = get();

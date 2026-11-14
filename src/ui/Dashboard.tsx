@@ -13,6 +13,8 @@ export function Dashboard({ onCompare }: { onCompare: () => void }) {
   const team = useGame((s) => s.team);
   const launch = useGame((s) => s.launch);
   const save = useGame((s) => s.saveDesign);
+  const loadExample = useGame((s) => s.loadExample);
+  const isHost = useGame((s) => !s.team?.started || s.team.isHost);
   const canLaunch = useGame((s) => s.canEdit('objectiveIds'));
   const scn = getScenario(design.scenarioId);
   const [open, setOpen] = useState<string | null>(null);
@@ -92,6 +94,7 @@ export function Dashboard({ onCompare }: { onCompare: () => void }) {
         <div className="row">
           <button className="btn sm" onClick={save}>Save design</button>
           <button className="btn sm" onClick={onCompare}>Compare saved</button>
+          <button className="btn sm ghost" disabled={!isHost} title="Replace your design with a worked example. One reasonable answer, not the only one." onClick={() => { if (window.confirm('Replace your current design with a worked example? Save your design first if you want to keep it.')) loadExample(); }}>Load example</button>
         </div>
         <button className="btn amber lg" style={{ width: '100%', marginTop: 10 }} disabled={!ev.flightReady || (!!team?.started && !canLaunch)} onClick={launch}>
           Launch mission

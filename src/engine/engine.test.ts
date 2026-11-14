@@ -4,6 +4,7 @@ import { defaultDesign } from './defaults';
 import { DEFAULT_ENV, evaluate, launchCapacityKg } from './evaluate';
 import { BODIES, captureDvCircular, computeContacts, eclipseFraction, naturalLifetimeYears, orbitalPeriod, propellantFraction, ssoInclination } from './physics';
 import { STATIONS } from '../data/stations';
+import { EXAMPLES } from '../data/examples';
 
 describe('physics sanity (checked against textbook values)', () => {
   it('ISS-like orbit has a ~92 minute period', () => {
@@ -77,5 +78,70 @@ describe('evaluation of starter designs', () => {
   it('a bigger array gives more power', () => {
     const d = defaultDesign('coastal');
     expect(evaluate({ ...d, bus: { ...d.bus, arrayM2: 6 } }).power.eolW).toBeGreaterThan(evaluate(d).power.eolW);
+  });
+});
+
+describe('worked examples', () => {
+  for (const s of SCENARIOS) {
+    it(`${s.id} example is flight-ready with real science return`, () => {
+      const ev = evaluate(EXAMPLES[s.id], DEFAULT_ENV);
+      expect(ev.flightReady).toBe(true);
+      expect(ev.scienceFrac).toBeGreaterThan(0.3);
+    });
+  }
+});
+
+describe('fuzzing: random designs never crash or produce NaN', () => {
+  it('evaluates and simulates 600 random designs', async () => {
+    const { mulberry32, monteCarlo, scoreMission, emptyContext, runFlight } = await import('./simulate');
+    const { LAUNCHERS } = await import('../data/launchers');
+    const r = mulberry32(2026);
+    const pick = <T,>(xs: readonly T[]) => xs[Math.floor(r() * xs.length)];
+    for (let i = 0; i < 600; i++) {
+      const s = pick(SCENARIOS);
+      const d = defaultDesign(s.id);
+      d.launcherId = pick(LAUNCHERS).id;
+      d.altKm = s.altRange[0] + r() * (s.altRange[1] - s.altRange[0]);
+      d.incDeg = s.incRange[0] + r() * (s.incRange[1] - s.incRange[0]);
+      d.sso = r() < 0.5;
+      d.lifeMonths = Math.round(s.minLifeMonths + r() * (s.maxLifeMonths - s.minLifeMonths));
+      d.instrumentIds = s.instrumentIds.filter(() => r() < 0.5);
+      d.objectiveIds = s.objectives.map((o) => o.id).filter(() => r() < 0.6);
+      d.bus = {
+        ...d.bus,
+        busClass: pick(['cubesat', 'smallsat', 'standard', 'flagship'] as const),
+        solarCell: pick(['silicon', 'gaas', 'triple'] as const),
+        arrayM2: 0.05 + r() * 60,
+        batteryWh: 10 + r() * 5000,
+        commBand: pick(['uhf', 's', 'x', 'ka'] as const),
+        dishM: r() < 0.3 ? 0 : r() * 6,
+        txW: 1 + r() * 300,
+        storageGb: 10 + r() * 4000,
+        adcs: pick(['magnetorquer', 'wheels', 'startracker'] as const),
+        propulsion: pick(['none', 'coldgas', 'monoprop', 'biprop', 'electric'] as const),
+        redundancy: pick([0, 1, 2] as const),
+        parts: pick(['cots', 'highrel', 'radhard'] as const),
+        thermal: pick(['none', 'passive', 'active'] as const),
+        telescopeM: s.usesTelescope ? 0.5 + r() * 6 : 0,
+        aerobrake: r() < 0.5,
+      };
+      d.stationIds = r() < 0.2 ? [] : ['svalbard', 'troll', 'bangalore'].filter(() => r() < 0.7);
+      d.dsnHoursPerDay = Math.floor(r() * 17);
+      d.dsnDish = pick(['34m', '70m'] as const);
+      const ev = evaluate(d, DEFAULT_ENV);
+      const bad = JSON.stringify(ev, (_k, v) => (typeof v === 'number' && !Number.isFinite(v) ? '__BAD__' : v));
+      // Infinity is allowed only for natural lifetime of non-Earth orbits
+      const noBad = !bad.replace(/"naturalLifeYears":"__BAD__"/g, '').includes('__BAD__');
+      expect(noBad).toBe(true);
+      if (ev.flightReady) {
+        const mc = monteCarlo(d, DEFAULT_ENV, ev, 20);
+        const sc = scoreMission(ev, mc, emptyContext);
+        expect(Number.isFinite(sc.total)).toBe(true);
+        expect(sc.total).toBeGreaterThanOrEqual(0);
+        expect(sc.total).toBeLessThanOrEqual(100);
+        const run = runFlight(d, DEFAULT_ENV, ev, i, true);
+        expect(Number.isFinite(run.scienceFrac)).toBe(true);
+      }
+    }
   });
 });

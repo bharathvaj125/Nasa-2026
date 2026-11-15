@@ -202,6 +202,7 @@ ${ul([
   '**Live telemetry in flight:** battery charge through each eclipse, data recorder fill and empty, propellant remaining, solar-array output.',
   '**In-flight decisions:** the mission pauses twice. A solar storm: the player chooses safe mode (about 25% damage chance, extra safe days) or rides it out. An instrument fault: quick restart (outage cut to about 40%, but a 1 in 5 chance of losing the instrument) or careful diagnosis (about 30% longer outage, no risk). Each choice changes the rest of the flight and appears in the report. In team mode one choice reaches everyone.',
   '**What-if previews:** hover (or focus) any option and see, before choosing, the change in launch mass, power margin, cost, data returned, science, reliability, delta-v and blockers. **Change chips** on the dashboard show how each number just moved (green better, red worse).',
+  '**Live score estimate:** the dashboard shows the grade you would get if you launched right now (30 quick simulated flights, updated as you design) with an up or down chip.',
   '**Sound effects (optional):** countdown ticks, GO / NO-GO tones, liftoff rumble and event chimes, built with the Web Audio API; off by default.',
   '**Mission Control twists:** ' + TWISTS.map((t) => `${t.title} (${t.effect})`).join('; ') + '.',
   '**Mission Coach:** tries about a hundred one-change variations of the player\'s design with the real evaluator and lists the best four with before/after numbers and an Apply button.',

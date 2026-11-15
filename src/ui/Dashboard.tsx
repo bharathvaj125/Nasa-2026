@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { getScenario } from '../data/scenarios';
 import { fmt } from '../engine/evaluate';
+import { emptyContext, monteCarlo, scoreMission } from '../engine/simulate';
 import { useEvaluation, useGame } from '../state/store';
 import { Coach } from './Coach';
-import { Meter, Pill, type Status } from './kit';
+import { Meter, Pill, useDelta, type Status } from './kit';
 
 const stat = (margin: number, warn = 10): Status => (margin < 0 ? 'bad' : margin < warn ? 'warn' : 'ok');
 
@@ -24,6 +25,18 @@ export function Dashboard({ onCompare }: { onCompare: () => void }) {
   const dataStatus: Status = ev.data.generatedGBday === 0 ? 'info' : ev.data.returnFrac >= 0.9 ? 'ok' : ev.data.returnFrac >= 0.6 ? 'warn' : 'bad';
   const costPct = (ev.cost.totalM / ev.cost.budgetM) * 100;
   const mgaPct = Math.round((ev.mass.mgaKg / Math.max(1, ev.mass.cbeDryKg)) * 100);
+  // Live estimate of the score if the player launched right now (30 simulated flights, debounced).
+  const [proj, setProj] = useState<{ s: number; g: string } | null>(null);
+  const projDelta = useDelta(proj?.s);
+  useEffect(() => {
+    if (!ev.flightReady) { setProj(null); return; }
+    const t = setTimeout(() => {
+      const mc = monteCarlo(design, env, ev, 30);
+      const sc = scoreMission(ev, mc, { ...emptyContext, stepsVisited: 4, iterations: 4, learnCards: 4 });
+      setProj({ s: sc.total, g: sc.grade });
+    }, 350);
+    return () => clearTimeout(t);
+  }, [design, env]); // eslint-disable-line react-hooks/exhaustive-deps
   const everyoneReady = !team?.started || Object.values(team.members).filter((m) => m.roles.length).every((m) => m.ready);
 
   return (
@@ -34,6 +47,18 @@ export function Dashboard({ onCompare }: { onCompare: () => void }) {
           <Pill tone={ev.flightReady ? 'green' : 'red'}>{ev.flightReady ? 'Flight ready' : `${errors.length} blocker${errors.length === 1 ? '' : 's'}`}</Pill>
         </div>
         <div className="muted" style={{ fontSize: 12.5, marginTop: 2 }}>Every number updates the moment you change a decision.</div>
+      </div>
+
+      <div className="card projected" aria-live="polite">
+        <div className="muted" style={{ fontSize: 11.5, textTransform: 'uppercase', letterSpacing: '.08em' }}>Estimated score if you launched now</div>
+        {proj ? (
+          <div className="row" style={{ alignItems: 'baseline', gap: 10 }}>
+            <b className="mono" style={{ fontSize: 30, color: proj.s >= 76 ? 'var(--green)' : proj.s >= 52 ? 'var(--amber)' : 'var(--red)' }}>{proj.s.toFixed(0)}</b>
+            <span className="muted">/ 100 · grade <b style={{ color: 'var(--text)' }}>{proj.g}</b></span>
+            {projDelta && <span key={projDelta.v} className={`dchip ${projDelta.v > 0 ? 'good' : 'bad'}`}>{projDelta.v > 0 ? '▲ +' : '▼ −'}{Math.abs(projDelta.v).toFixed(0)}</span>}
+          </div>
+        ) : <div className="muted" style={{ fontSize: 13 }}>{ev.flightReady ? 'Calculating…' : 'Clear the red blockers to see an estimate.'}</div>}
+        <div className="muted" style={{ fontSize: 11.5 }}>Quick estimate from 30 simulated flights. The real launch flies 300 and adds process points.</div>
       </div>
 
       <div className="card" style={{ padding: 11, borderColor: 'rgba(255,180,84,.5)', background: 'rgba(255,180,84,.06)' }}>

@@ -33,7 +33,7 @@ export function whatIf(a: Evaluation, b: Evaluation): { text: string; good: bool
 }
 
 /** Briefly reports how a number changed so the player sees the consequence of the last click. */
-function useDelta(num: number | undefined) {
+export function useDelta(num: number | undefined) {
   const prev = useRef(num);
   const [d, setD] = useState<{ v: number; k: number } | null>(null);
   useEffect(() => {

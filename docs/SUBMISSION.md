@@ -13,7 +13,7 @@ CATALYX Mission Design Lab is a playable space mission design game for students 
 Use the PDF in this repository (GitHub renders it in the browser, no login):
 `https://github.com/bharathvaj125/Nasa-2026/blob/main/docs/CATALYX-demo-deck.pdf`
 
-> Before submitting: open `docs/deck/deck.html`, replace `[add teammates here]` on slide 1 with your team members' names, and re-export the PDF (open the file in Chrome, Print, Save as PDF, paper size 1600 x 900 px or "Fit to page", background graphics on). Required on the slides: team name, member names, challenge name. Slides must not contain images of anyone under 18.
+> Team members are already on slide 1 (Bharathvaj S, Lingesh R). Required on the slides: team name, member names, challenge name. Slides must not contain images of anyone under 18.
 
 ## Link to Final Project (public, no login)
 `https://bharathvaj125.github.io/Nasa-2026/`

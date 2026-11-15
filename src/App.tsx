@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { getScenario } from './data/scenarios';
 import { useGame } from './state/store';
 import { Flight } from './ui/Flight';
+import { Glossary } from './ui/Glossary';
 import { Home } from './ui/Home';
 import { Lab } from './ui/Lab';
 import { Logo, Modal, Pill } from './ui/kit';
@@ -37,6 +38,7 @@ export default function App() {
   const seen = useGame((s) => s.seenBriefing);
   const dismiss = useGame((s) => s.dismissBriefing);
   const [help, setHelp] = useState(false);
+  const [gloss, setGloss] = useState(false);
   useEffect(() => { loadWeather(); }, [loadWeather]);
   const scn = getScenario(scenarioId);
   const inGame = screen !== 'home';
@@ -52,6 +54,7 @@ export default function App() {
         <span title={weather.source === 'fallback' ? 'NASA DONKI space-weather data unavailable: using average solar activity' : `${weather.cmeCount} coronal mass ejections in the last 30 days (NASA DONKI), peak Kp ${weather.maxKp}`}>
           <Pill tone={weather.activity > 1.4 ? 'amber' : 'green'}>☀ Solar activity {weather.activity.toFixed(2)}×{weather.source === 'live' || weather.source === 'cache' ? ' · NASA DONKI' : ''}</Pill>
         </span>
+        <button className="btn sm ghost" onClick={() => setGloss(true)}>Glossary</button>
         <button className="btn sm ghost" onClick={() => setHelp(true)}>How to play</button>
       </header>
       <main style={{ flex: 1 }}>
@@ -61,6 +64,7 @@ export default function App() {
         {screen === 'flight' && <Flight />}
         {screen === 'report' && <Report />}
       </main>
+      {gloss && <Glossary onClose={() => setGloss(false)} />}
       {(help || (!seen && screen === 'lab')) && <Briefing onClose={() => { setHelp(false); dismiss(); }} />}
     </div>
   );

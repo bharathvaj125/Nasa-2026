@@ -1,0 +1,31 @@
+export interface Term { term: string; short: string; body: string }
+
+/** Plain-language explanations of every technical word the game uses. */
+export const GLOSSARY: Term[] = [
+  { term: 'Delta-v (Δv)', short: 'How much a spacecraft must change its speed', body: 'Every manoeuvre (braking into orbit, holding altitude, leaving orbit) is measured as a change in speed in m/s. The sum of all of them is the delta-v budget, and it decides how much propellant you carry.' },
+  { term: 'Rocket equation', short: 'Why fuel needs fuel', body: 'Propellant must itself be lifted and accelerated, so the fuel needed grows exponentially with delta-v: Δv = Isp × g0 × ln(m_start / m_end). That is why a Mars orbiter is half propellant.' },
+  { term: 'Isp (specific impulse)', short: 'Miles-per-gallon of a rocket engine', body: 'Seconds of thrust you get from one kilogram of propellant. Cold gas ≈ 65 s, hydrazine ≈ 225 s, bipropellant ≈ 315 s, ion engines ≈ 1,600 s (but very gentle).' },
+  { term: 'Orbit / altitude / inclination', short: 'Where and how the spacecraft circles', body: 'Altitude is the height above the surface. Inclination is the tilt of the orbit relative to the equator: 0° circles the equator, 90° passes over both poles.' },
+  { term: 'Sun-synchronous orbit (SSO)', short: 'A polar orbit that keeps the same Sun angle', body: 'A slightly retrograde near-polar orbit whose plane turns once a year, so the satellite passes over every place at the same local time. Landsat uses this for consistent lighting.' },
+  { term: 'Eclipse', short: 'Time spent in the planet\'s shadow', body: 'In low Earth orbit about a third of each orbit is in shadow. Solar arrays make no power then, so the battery carries the spacecraft.' },
+  { term: 'Depth of discharge (DoD)', short: 'How much of the battery you use each cycle', body: 'Shallow cycles (20-30%) last many years; deep cycles (60%+) wear a battery out in months. A low-orbit satellite goes through about 5,000 eclipses a year.' },
+  { term: 'Swath', short: 'Width of the strip a camera sees', body: 'The wider the swath, the faster you cover the globe. Landsat\'s swath is 185 km.' },
+  { term: 'Revisit time', short: 'How often you see the same place again', body: 'Roughly the circumference of Earth divided by (swath × orbits per day). A 16-day revisit for Landsat comes from its 185 km swath and 14.6 orbits per day.' },
+  { term: 'Ground resolution', short: 'The size of one pixel on the ground', body: 'Resolution ≈ altitude × pixel size ÷ focal length, so flying lower makes sharper pictures.' },
+  { term: 'Link budget', short: 'Accounting for a radio signal', body: 'Transmit power + antenna gains − distance loss − atmosphere − noise. If the budget is positive the data rate works; a long distance costs a lot (free-space loss grows with distance squared).' },
+  { term: 'dB, dBi, G/T', short: 'Decibels: the language of radio', body: 'Decibels add instead of multiply. dBi is antenna gain versus an ideal point source. G/T is how well a receiving station hears faint signals.' },
+  { term: 'Band (UHF, S, X, Ka)', short: 'Radio frequency range', body: 'Higher frequency carries more data per second but needs a more precisely pointed antenna and is hurt more by rain. X-band is the standard for NASA science data.' },
+  { term: 'Deep Space Network (DSN)', short: 'NASA\'s giant antennas for faraway spacecraft', body: 'Three sites (California, Spain, Australia) with 34 m and 70 m dishes talk to missions beyond Earth orbit. Time on them has to be booked.' },
+  { term: 'Downlink', short: 'Sending data to Earth', body: 'Downlink per day = contact minutes per day × data rate. If you collect more than you can downlink, the extra is lost.' },
+  { term: 'ADCS', short: 'Attitude Determination and Control System', body: 'Sensors and actuators (magnetorquers, reaction wheels, star trackers) that point the spacecraft. Pointing accuracy limits sharp imaging and narrow antenna beams.' },
+  { term: 'Onboard computer', short: 'The spacecraft\'s brain', body: 'Runs the spacecraft. Better computers compress or select data onboard (less to downlink) and can recover from faults without waiting for ground controllers.' },
+  { term: 'Redundancy', short: 'Spare hardware', body: 'Backups for critical items. Adds mass and cost but cuts the failure rate: a single failure no longer ends the mission.' },
+  { term: 'TRL (Technology Readiness Level)', short: 'How proven a technology is, 1 to 9', body: 'TRL 9 has flown successfully. Low TRL items are riskier, take longer to build and often cost more than planned.' },
+  { term: 'CML (Concept Maturity Level)', short: 'NASA JPL\'s ladder from idea to design', body: 'CML 1 is a raw idea; CML 4 is a point design with trade studies done. This game\'s four design steps follow that ladder.' },
+  { term: 'MGA (mass growth allowance)', short: 'Planned extra mass for surprises', body: 'Designs almost always get heavier. NASA adds roughly 25-30% at concept stage. Your mass shown as "incl. growth allowance" has this applied.' },
+  { term: 'Launch window', short: 'When the planets line up', body: 'Missions to Mars can launch only about every 26 months. Miss it and you wait, and pay for the delay.' },
+  { term: 'Aerobraking', short: 'Using a thin atmosphere to slow down', body: 'Skimming the upper atmosphere of Mars lowers the orbit slowly and saves fuel, at the cost of months of time and a little risk.' },
+  { term: 'Lagrange point L2', short: 'A gravitational balance point', body: 'About 1.5 million km from Earth, directly away from the Sun. A spacecraft there keeps Sun, Earth and Moon on one side, so one sunshield keeps instruments cold. JWST is there.' },
+  { term: 'Monte Carlo simulation', short: 'Running the mission hundreds of times', body: 'Each run draws random failures and events. The share of runs that succeed is the probability of success. Your score uses the average, not one lucky flight.' },
+  { term: 'GMAT', short: 'NASA\'s General Mission Analysis Tool', body: 'Open-source software NASA uses to design and analyse trajectories. The report can export your orbit as a starter script for it.' },
+];

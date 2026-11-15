@@ -16,7 +16,7 @@ export function defaultDesign(scenarioId: string): Design {
     ltan: 'morning',
     instrumentIds: [],
     bus: {
-      busClass: 'smallsat', solarCell: 'gaas', arrayM2: 0.8, batteryWh: 300, commBand: 'x', dishM: 0, txW: 10, storageGb: 200, adcs: 'wheels',
+      busClass: 'smallsat', solarCell: 'gaas', arrayM2: 0.8, batteryWh: 300, commBand: 'x', dishM: 0, txW: 10, storageGb: 200, adcs: 'wheels', computer: 'standard',
       propulsion: 'monoprop', redundancy: 0, parts: 'highrel', thermal: 'none', telescopeM: 0, aerobrake: false,
     },
     stationIds: [],

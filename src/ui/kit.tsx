@@ -115,11 +115,11 @@ export function Learn({ id, title, children }: { id: string; title: string; chil
 }
 
 export type Status = 'ok' | 'warn' | 'bad' | 'info';
-export function Meter({ label, value, max, text, status, note, mark, onClick }: { label: string; value: number; max: number; text: ReactNode; status: Status; note?: ReactNode; mark?: number; onClick?: () => void }) {
+export function Meter({ label, value, max, text, status, note, mark, onClick, critical }: { critical?: boolean; label: string; value: number; max: number; text: ReactNode; status: Status; note?: ReactNode; mark?: number; onClick?: () => void }) {
   const pct = Math.max(0, Math.min(100, (value / max) * 100));
   return (
     <div className="meter" onClick={onClick}>
-      <div className="top"><b>{label}</b><span>{text}</span></div>
+      <div className="top"><b>{critical && <span title="Critical resource for this mission" style={{ color: 'var(--amber)' }}>★ </span>}{label}</b><span>{text}</span></div>
       <div className={`bar st-${status}`}><i style={{ width: `${pct}%` }} />{mark !== undefined && <u style={{ left: `${Math.min(100, (mark / max) * 100)}%` }} />}</div>
       {note && <small>{note}</small>}
     </div>

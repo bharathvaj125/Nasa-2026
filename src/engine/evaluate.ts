@@ -1,8 +1,9 @@
 // The heart of CATALYX: takes a mission Design and computes every coupled budget.
-import { ADCS, AEROBRAKE, BANDS, BATTERY, BUS_CLASSES, PARTS, PROPULSION, REDUNDANCY, SOLAR_CELLS, STORAGE, THERMAL, sunshieldMassKg, telescopeCostM, telescopeMassKg } from '../data/components';
+import { ADCS, AEROBRAKE, BANDS, BATTERY, BUS_CLASSES, COMPUTERS, PARTS, PROPULSION, REDUNDANCY, SOLAR_CELLS, STORAGE, THERMAL, sunshieldMassKg, telescopeCostM, telescopeMassKg } from '../data/components';
 import { getInstrument } from '../data/instruments';
 import { getLauncher } from '../data/launchers';
 import { getScenario } from '../data/scenarios';
+import { getTwist } from '../data/twists';
 import { DSN_FEE, STATIONS } from '../data/stations';
 import {
   BODIES, G0, atmosphericDensity, captureDvCircular, captureDvEllipse, circularVelocity, clamp, computeContacts, deg2rad, dragDvPerYear, eclipseFraction,
@@ -19,6 +20,11 @@ export interface Env {
   difficulty: Difficulty;
 }
 export const DEFAULT_ENV: Env = { solarActivity: 1, difficulty: 'engineer' };
+
+/** Applies the active Mission Control twist (if any) to the environment. */
+export function twistEnv(d: Design, e: Env): Env {
+  return d.twist === 'solar-max' ? { ...e, solarActivity: e.solarActivity * 1.8 } : e;
+}
 
 const MGA: Record<Difficulty, number> = { cadet: 0.3, engineer: 0.25, director: 0.2, sandbox: 0.25 };
 export const budgetFor = (scn: Scenario, d: Difficulty) => (d === 'sandbox' ? scn.budgetM.cadet * 20 : scn.budgetM[d]);
@@ -139,7 +145,8 @@ function buildOrbit(scn: Scenario, d: Design, ballistic: number, env: Env): Orbi
 
 const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
 
-export function evaluate(design: Design, env: Env = DEFAULT_ENV): Evaluation {
+export function evaluate(design: Design, envIn: Env = DEFAULT_ENV): Evaluation {
+  const env = twistEnv(design, envIn);
   const scn = getScenario(design.scenarioId);
   const b = design.bus;
   const busSpec = BUS_CLASSES[b.busClass];
@@ -148,6 +155,7 @@ export function evaluate(design: Design, env: Env = DEFAULT_ENV): Evaluation {
   const cell = SOLAR_CELLS[b.solarCell];
   const band = BANDS[b.commBand];
   const adcs = ADCS[b.adcs];
+  const comp = COMPUTERS[b.computer ?? 'standard'];
   const prop = PROPULSION[b.propulsion];
   const thermal = THERMAL[b.thermal];
   const lv = getLauncher(design.launcherId);
@@ -165,6 +173,8 @@ export function evaluate(design: Design, env: Env = DEFAULT_ENV): Evaluation {
   const commKg = band.radioKg + dishKg + 0.5 + 0.03 * b.txW;
   const adcsKg = Math.max(0.15, adcs.kg * busSpec.scale);
   const adcsW = adcs.w * clamp(busSpec.scale, 0.2, 2.5);
+  const compKg = Math.max(0.15, comp.kg * clamp(busSpec.scale, 0.3, 2.5));
+  const compW = comp.w * clamp(busSpec.scale, 0.3, 2.5);
   const propEngineKg = prop.id === 'none' ? 0 : Math.max(0.2, prop.baseKg * busSpec.scale);
   const scopeKg = scn.usesTelescope ? telescopeMassKg(b.telescopeM) : 0;
   const storageKg = b.storageGb * STORAGE.kgPerGb;
@@ -173,7 +183,7 @@ export function evaluate(design: Design, env: Env = DEFAULT_ENV): Evaluation {
   if (scn.usesTelescope && thermal.id !== 'none') thermalKg += sunshieldMassKg(b.telescopeM);
   if (thermal.id === 'active') thermalKg += 40 + instKg * 0.1;
   const payloadKg = instKg + scopeKg;
-  const busKgRaw = powerKg + commKg + adcsKg + propEngineKg + thermalKg + busSpec.baseMassKg + storageKg;
+  const busKgRaw = powerKg + commKg + adcsKg + compKg + propEngineKg + thermalKg + busSpec.baseMassKg + storageKg;
   const structureKg = busSpec.structureFrac * (payloadKg + busKgRaw);
   const busKg = busKgRaw * red.massMult;
   const dryBaseCbe = payloadKg + busKg + structureKg;
@@ -245,7 +255,7 @@ export function evaluate(design: Design, env: Env = DEFAULT_ENV): Evaluation {
   const tankKg = propellantKg * prop.tankFrac;
   const cbeDry = dryBaseCbe + tankKg;
   const wetKg = dryMevKg + propellantKg;
-  const capacityKg = launchCapacityKg(scn, design);
+  const capacityKg = launchCapacityKg(scn, design) * (design.twist === 'capacity-cut' ? 0.85 : 1);
   const mass: MassBudget = {
     instrumentsKg: instKg, powerKg, commKg, adcsKg, propulsionKg: propEngineKg + tankKg, thermalKg, structureKg, avionicsKg: busSpec.baseMassKg,
     storageKg, telescopeKg: scopeKg, cbeDryKg: cbeDry, mgaKg: cbeDry * mga, mevDryKg: dryMevKg, propellantKg, wetKg, capacityKg,
@@ -296,7 +306,7 @@ export function evaluate(design: Design, env: Env = DEFAULT_ENV): Evaluation {
   const commFrac = clamp(contactMinPerDay / 1440, 0, 1);
   const commAvgW = txDc * commFrac + 3;
   const coolingW = thermal.id === 'active' ? thermal.w : 0;
-  const busW = busSpec.basePowerW + adcsW;
+  const busW = busSpec.basePowerW + adcsW + compW;
   const avgLoad = busW + instAvgW + commAvgW + coolingW;
   const peakLoad = busW + instPeakW + txDc + 3 + coolingW;
   const sunFrac = 1 - orbit.eclipseFrac;
@@ -314,7 +324,7 @@ export function evaluate(design: Design, env: Env = DEFAULT_ENV): Evaluation {
   const powerFactor = clamp(genAvg / Math.max(1, avgLoad), 0, 1);
 
   // ---------- 7. data ----------
-  const generatedGBday = sum(instruments.map((i) => (i.dataMbps * i.duty * 86400) / 8 / 1000)) * powerFactor;
+  const generatedGBday = (sum(instruments.map((i) => (i.dataMbps * i.duty * 86400) / 8 / 1000)) * powerFactor) / comp.compress;
   const downlinkGBday = (contactMinPerDay * 60 * rateMbps * 0.85) / 8 / 1000;
   const storageNeed = (generatedGBday * maxGapHours) / 24;
   const storageLoss = storageNeed > 0 ? clamp(1 - b.storageGb / storageNeed, 0, 1) : 0;
@@ -325,7 +335,7 @@ export function evaluate(design: Design, env: Env = DEFAULT_ENV): Evaluation {
 
   // ---------- 8. mission timing ----------
   const lifeLimitYears = Math.min(years, prop.id === 'none' && earth ? orbit.naturalLifeYears : years, batteryLifeYears);
-  const devMonths = busSpec.devMonths + sum(instruments.map((i) => (9 - i.trl) * 1.2)) + red.id * 2 + (prop.id === 'electric' ? 3 : 0) + (scn.usesTelescope ? b.telescopeM * 6 : 0) + (b.parts === 'radhard' ? 4 : 0);
+  const devMonths = busSpec.devMonths + sum(instruments.map((i) => (9 - i.trl) * 1.2)) + red.id * 2 + (prop.id === 'electric' ? 3 : 0) + (scn.usesTelescope ? b.telescopeM * 6 : 0) + (b.parts === 'radhard' ? 4 : 0) + (design.twist === 'late-supplier' ? 9 : 0);
   const commissionDays = { cubesat: 20, smallsat: 40, standard: 60, flagship: 150 }[b.busClass];
   let transferDays = scn.cruiseDays + (b.aerobrake && scn.destination === 'mars' ? AEROBRAKE.extraDays : 0);
   if (prop.id === 'electric' && earth && totalDv > 0) {
@@ -421,6 +431,7 @@ export function evaluate(design: Design, env: Env = DEFAULT_ENV): Evaluation {
   const busMult = parts.costMult * red.costMult;
   const cPower = (b.arrayM2 * cell.costMPerM2 + b.batteryWh * BATTERY.costMPerWh) * busMult;
   const cComm = (band.radioCostM + (b.dishM > 0 ? 0.4 + 1.2 * b.dishM * b.dishM : 0.05) + 0.5 + 0.02 * b.txW) * busMult;
+  const cComp = comp.costM * clamp(busSpec.scale, 0.5, 3) * busMult;
   const cAdcs = adcs.costM * (0.5 + 0.5 * busSpec.scale) * busMult;
   const cProp = prop.id === 'none' ? 0 : (prop.costM * clamp(busSpec.scale, 0.3, 2.5) + propellantKg * prop.costMPerKg) * busMult;
   const cThermal = (thermal.costM + (scn.usesTelescope && thermal.id !== 'none' ? 12 * b.telescopeM : 0)) * busMult;
@@ -434,6 +445,7 @@ export function evaluate(design: Design, env: Env = DEFAULT_ENV): Evaluation {
     { label: 'Power (array + battery)', valueM: cPower, group: 'hardware' },
     { label: 'Communications', valueM: cComm, group: 'hardware' },
     { label: 'Pointing (ADCS)', valueM: cAdcs, group: 'hardware' },
+    { label: 'Onboard computer', valueM: cComp, group: 'hardware' },
     { label: 'Propulsion', valueM: cProp, group: 'hardware' },
     { label: 'Thermal', valueM: cThermal, group: 'hardware' },
     { label: 'Data storage', valueM: cStorage, group: 'hardware' },
@@ -458,14 +470,14 @@ export function evaluate(design: Design, env: Env = DEFAULT_ENV): Evaluation {
   );
   if (slipPenaltyM > 0) lines.push({ label: 'Launch-window slip penalty', valueM: slipPenaltyM, group: 'program' });
   const totalM = hardwareM + integrationM + programM + reserveM + launchM + opsM + slipPenaltyM;
-  const cost: CostBreakdown = { lines, hardwareM, integrationM, programM, reserveM, launchM, opsM, totalM, budgetM: budgetFor(scn, env.difficulty), slipPenaltyM };
+  const cost: CostBreakdown = { lines, hardwareM, integrationM, programM, reserveM, launchM, opsM, totalM, budgetM: budgetFor(scn, env.difficulty) * (design.twist === 'budget-cut' ? 0.88 : 1), slipPenaltyM };
 
   // ---------- 11. reliability ----------
   const baseTransit = { earth: 1, moon: 0.97, mars: 0.9, l2: 0.96 }[scn.destination];
   const transit = 1 - (1 - baseTransit) * (0.5 + 0.5 * red.failMult) * 1;
   const transitFinal = transit * (b.aerobrake && scn.destination === 'mars' ? AEROBRAKE.failFactor : 1);
   const lambda =
-    busSpec.failPerYear * parts.failMult * red.failMult + 0.02 * orbit.radiation * parts.radSens * (0.5 + 0.5 * red.failMult) + sum(instruments.map((i) => (9 - i.trl) * 0.003)) + 0.003 * instruments.length;
+    busSpec.failPerYear * parts.failMult * red.failMult * comp.failMult + 0.02 * orbit.radiation * parts.radSens * (0.5 + 0.5 * red.failMult) + sum(instruments.map((i) => (9 - i.trl) * 0.003)) + 0.003 * instruments.length;
   const survival = Math.exp(-lambda * (nominalMonths / 12));
   const commission = 0.96 + 0.02 * (1 - red.failMult);
   const reliability: Reliability = {
@@ -552,6 +564,11 @@ export function evaluate(design: Design, env: Env = DEFAULT_ENV): Evaluation {
   if (design.lifeMonths > nominalMonths + 1 && nominalMonths < design.lifeMonths)
     add({ id: 'life-short', severity: 'warn', title: `Hardware lasts ${nominalMonths.toFixed(0)} months, not ${design.lifeMonths}`, detail: batteryLifeYears < years ? 'The battery wears out first.' : 'Orbit decay ends the mission early.', why: 'Mission life is set by whichever consumable runs out first.', role: 'engineer' });
 
+  const tw = getTwist(design.twist);
+  if (tw) {
+    const unmet = tw.id === 'extended-life' && design.lifeMonths < scn.defaultLifeMonths + 12;
+    add({ id: 'twist', severity: unmet ? 'error' : 'warn', title: `Mission Control twist: ${tw.title}`, detail: unmet ? `${tw.effect} Plan at least ${scn.defaultLifeMonths + 12} months.` : tw.effect, why: 'Real missions are rarely allowed to finish the design they started with. Budgets get cut, suppliers slip and requirements grow. Healthy margins are what let a team absorb a surprise.', fix: unmet ? 'Raise the planned operating life in CML 1.' : undefined, role: 'lead' });
+  }
   const errors = constraints.filter((c) => c.severity === 'error').length;
   if (errors === 0 && constraints.filter((c) => c.severity === 'warn').length === 0)
     add({ id: 'all-good', severity: 'ok', title: 'All design checks pass', detail: 'No constraint violations found.', why: 'This is what a clean design review looks like.' });

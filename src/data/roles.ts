@@ -21,9 +21,9 @@ export const ROLE_ORDER: RoleId[] = ['lead', 'ops', 'engineer', 'science'];
 
 /** which role owns each editable design field */
 export const OWNER: Record<string, RoleId> = {
-  name: 'lead', objectiveIds: 'lead', lifeMonths: 'lead',
+  name: 'lead', objectiveIds: 'lead', lifeMonths: 'lead', twist: 'lead',
   launcherId: 'ops', altKm: 'ops', incDeg: 'ops', sso: 'ops', ltan: 'ops', stationIds: 'ops', dsnHoursPerDay: 'ops', dsnDish: 'ops', 'bus.aerobrake': 'ops',
-  'bus.busClass': 'engineer', 'bus.solarCell': 'engineer', 'bus.arrayM2': 'engineer', 'bus.batteryWh': 'engineer', 'bus.adcs': 'engineer', 'bus.propulsion': 'engineer',
+  'bus.busClass': 'engineer', 'bus.solarCell': 'engineer', 'bus.arrayM2': 'engineer', 'bus.batteryWh': 'engineer', 'bus.adcs': 'engineer', 'bus.computer': 'engineer', 'bus.propulsion': 'engineer',
   'bus.redundancy': 'engineer', 'bus.parts': 'engineer', 'bus.thermal': 'engineer',
   instrumentIds: 'science', 'bus.telescopeM': 'science', 'bus.commBand': 'science', 'bus.dishM': 'science', 'bus.txW': 'science', 'bus.storageGb': 'science',
 };

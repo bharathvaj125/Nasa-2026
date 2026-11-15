@@ -1,10 +1,10 @@
 // Mission simulation: one narrated flight with random events, plus Monte Carlo statistics.
-import { BUS_CLASSES, PARTS, PROPULSION, REDUNDANCY } from '../data/components';
+import { BUS_CLASSES, COMPUTERS, PARTS, PROPULSION, REDUNDANCY } from '../data/components';
 import { getInstrument } from '../data/instruments';
 import { getLauncher } from '../data/launchers';
 import { getScenario } from '../data/scenarios';
 import { clamp } from './physics';
-import { evaluate, fmt, type Env } from './evaluate';
+import { evaluate, fmt, twistEnv, type Env } from './evaluate';
 import type { Design, Evaluation, FlightEvent, FlightRun, Insight, MonteCarlo, RoleId, ScoreBreakdown } from './types';
 
 // ---------------------------------------------------------------- random numbers
@@ -44,7 +44,8 @@ interface RunInternal extends FlightRun {
 
 const DAY = 365.25;
 
-export function runFlight(design: Design, env: Env, ev: Evaluation, seed: number, narrate = true): RunInternal {
+export function runFlight(design: Design, envIn: Env, ev: Evaluation, seed: number, narrate = true): RunInternal {
+  const env = twistEnv(design, envIn);
   const rng = mulberry32(seed);
   const scn = getScenario(design.scenarioId);
   const lv = getLauncher(design.launcherId);
@@ -141,7 +142,7 @@ export function runFlight(design: Design, env: Env, ev: Evaluation, seed: number
         const inst = instruments[Math.floor(rng() * instruments.length)];
         alive.set(inst.id, Math.min(alive.get(inst.id) ?? 1, t / Math.max(0.01, endYears)));
         push(t, { phase: 'science', kind: 'bad', title: `Solar storm destroys ${inst.name}`, detail: 'A particle strike fried the instrument electronics.', why: 'Sensitive detectors are the first to suffer in a storm. Better parts and redundancy reduce the chance.' });
-      } else { const d = 3 + rng() * 7; safeDays += d; push(t, { phase: 'science', kind: 'warn', title: 'Computer reset: safe mode', detail: `The spacecraft rebooted and spent ${d.toFixed(0)} days in safe mode before recovery.`, why: 'Safe mode turns off instruments to protect the spacecraft until ground controllers can investigate.' }); }
+      } else { const d = (3 + rng() * 7) * COMPUTERS[design.bus.computer ?? 'standard'].safeModeMult; safeDays += d; push(t, { phase: 'science', kind: 'warn', title: 'Computer reset: safe mode', detail: `The spacecraft rebooted and spent ${d.toFixed(0)} days in safe mode before recovery.`, why: 'Safe mode turns off instruments to protect the spacecraft until ground controllers can investigate.' }); }
     } else weathered++;
   }
   if (weathered > 0)

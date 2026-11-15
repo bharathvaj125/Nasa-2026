@@ -1,4 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { EXAMPLES } from '../data/examples';
+import { DEFAULT_ENV, evaluate } from '../engine/evaluate';
+import { emptyContext, monteCarlo, scoreMission } from '../engine/simulate';
 import { SCENARIOS } from '../data/scenarios';
 import { budgetFor, fmt } from '../engine/evaluate';
 import { useGame } from '../state/store';
@@ -28,6 +31,14 @@ export function Home() {
   const acceptShared = useGame((s) => s.acceptShared);
   const clearShared = useGame((s) => s.clearShared);
   const [pick, setPick] = useState(scenarioId);
+  const board = useGame((s) => s.board);
+  const bench = useMemo(() => {
+    const d = EXAMPLES[pick];
+    const ev = evaluate(d, DEFAULT_ENV);
+    const mc = monteCarlo(d, DEFAULT_ENV, ev, 120);
+    return scoreMission(ev, mc, { ...emptyContext, stepsVisited: 4, iterations: 4, learnCards: 4 }).total;
+  }, [pick]);
+  const top = board.filter((b) => b.scenarioId === pick).slice(0, 5);
   const [joinOpen, setJoinOpen] = useState<string | null>(null);
   const [code, setCode] = useState('');
   useEffect(() => {
@@ -96,6 +107,15 @@ export function Home() {
               <li><b style={{ color: 'var(--text)' }}>Real reference missions.</b> Landsat 9, LRO, MRO and JWST. Compare your design to the real thing.</li>
               <li><b style={{ color: 'var(--text)' }}>GMAT export.</b> Download your orbit as a script for NASA's General Mission Analysis Tool.</li>
             </ul>
+          </Panel>
+
+          <Panel title="Leaderboard" sub={`${scn.title}: your best runs on this device`}>
+            <div className="card" style={{ padding: 10, marginBottom: 8 }}>
+              <b>Benchmark: {bench.toFixed(0)}/100</b> <span className="muted" style={{ fontSize: 13 }}>· the worked example design. Can you beat it?</span>
+            </div>
+            {top.length === 0 ? <div className="muted" style={{ fontSize: 14 }}>No runs yet for this scenario. Fly a mission to get on the board.</div> : (
+              <table className="t"><tbody>{top.map((b, i) => <tr key={b.id}><td className="num">#{i + 1}</td><td>{b.player}<div className="muted" style={{ fontSize: 12 }}>{b.designName} · {b.difficulty}</div></td><td className="num">{b.score.toFixed(0)}</td><td><Pill tone={b.score >= bench ? 'green' : undefined}>{b.grade}</Pill></td></tr>)}</tbody></table>
+            )}
           </Panel>
 
           <Panel title="How a mission works here">

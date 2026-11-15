@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { getScenario } from '../data/scenarios';
+import { ROLES } from '../data/roles';
 import { fmt } from '../engine/evaluate';
+import type { Evaluation, FlightRun, RoleId } from '../engine/types';
 import { useGame } from '../state/store';
 import { LineChart } from './charts';
 import { Panel, Pill } from './kit';
@@ -16,6 +18,7 @@ export function Flight() {
   const [speed, setSpeed] = useState(1);
   const [playing, setPlaying] = useState(true);
   const [shadow, setShadow] = useState(false);
+  const [intro, setIntro] = useState(true);
   const logRef = useRef<HTMLDivElement>(null);
   const scn = getScenario(result.design.scenarioId);
   const { run, ev } = result;
@@ -24,7 +27,7 @@ export function Flight() {
   const warp = (day: number) => (day <= devEnd ? 0.12 * (day / Math.max(1, devEnd)) : 0.12 + 0.88 * ((day - devEnd) / Math.max(1, run.totalDays - devEnd)));
   const events = useMemo(() => run.events.slice().sort((a, b) => a.dayOffset - b.dayOffset), [run]);
 
-  useEffect(() => { setP(0); setPlaying(true); }, [run.seed]);
+  useEffect(() => { setP(0); setIntro(true); setPlaying(false); }, [run.seed]);
   useEffect(() => {
     if (!playing) return;
     let raf = 0, last = performance.now();
@@ -46,10 +49,14 @@ export function Flight() {
   const sci = run.curve.filter((c) => warp(c.day) <= p);
   const finalSci = run.scienceFrac * 100;
   const opsStart = run.events.find((e) => e.phase === 'commissioning' && e.kind === 'good')?.dayOffset ?? devEnd;
+  const opsStartDay = run.events.find((e) => e.phase === 'commissioning' && e.kind === 'good')?.dayOffset ?? devEnd;
+  const opsFrac = Math.max(0, Math.min(1, (day - opsStartDay) / Math.max(1, run.totalDays - opsStartDay)));
+  const insertionDone = visible.some((e) => e.phase === 'insertion' || e.phase === 'commissioning' || e.phase === 'science');
   const failedEarly = run.outcome === 'failed' && run.scienceFrac < 0.05;
 
   return (
     <div className="container">
+      {intro && <Countdown ev={ev} name={result.design.name} onDone={() => { setIntro(false); setPlaying(true); }} />}
       <div className="row" style={{ marginBottom: 12 }}>
         <h2 style={{ fontSize: 26 }}>{result.design.name}: <span style={{ color: 'var(--cyan)' }}>{done ? 'mission complete' : 'in flight'}</span></h2>
         <span className="spacer" />
@@ -83,6 +90,7 @@ export function Flight() {
               <LineChart series={[{ name: 'science', color: '#5ee7ff', pts: (sci.length > 1 ? sci : [{ day: 0, science: 0 }, { day: 1, science: 0 }] as any[]).map((c: any) => [c.day, c.science * 100] as [number, number]) }]} yMax={Math.max(10, finalSci * 1.1)} xLabel="Cumulative science return (% of scenario potential)" height={110} />
             </div>
           </Panel>
+          <Telemetry ev={ev} phase={phase} shadow={shadow} playing={playing && !intro} speed={speed} opsFrac={opsFrac} insertionDone={insertionDone} storageGb={result.design.bus.storageGb} />
         </div>
 
         <Panel title="Flight log" sub="What happened, and why">
@@ -112,4 +120,106 @@ export function Flight() {
 
 function Live({ k, v }: { k: string; v: string }) {
   return <div className="card" style={{ padding: 10 }}><div className="muted" style={{ fontSize: 11.5, textTransform: 'uppercase', letterSpacing: '.06em' }}>{k}</div><div className="mono" style={{ fontSize: 17, color: 'var(--cyan)' }}>{v}</div></div>;
+}
+
+// ---------------------------------------------------------------- launch sequence
+function polls(ev: Evaluation): { role: RoleId; call: 'GO' | 'CAUTION' | 'NO-GO'; why: string }[] {
+  const lead = ev.cost.totalM > ev.cost.budgetM ? 'NO-GO' : ev.cost.totalM > ev.cost.budgetM * 0.92 ? 'CAUTION' : 'GO';
+  const ops = ev.mass.marginPct < 0 ? 'NO-GO' : ev.mass.marginPct < 10 ? 'CAUTION' : 'GO';
+  const eng = ev.power.marginPct < 0 || ev.power.batteryDod > 0.8 ? 'NO-GO' : ev.power.marginPct < 10 || ev.power.batteryDod > 0.4 ? 'CAUTION' : 'GO';
+  const sci = ev.data.generatedGBday > 0 && ev.data.returnFrac < 0.6 ? 'NO-GO' : ev.data.returnFrac < 0.85 ? 'CAUTION' : 'GO';
+  return [
+    { role: 'lead', call: lead, why: `Cost $${fmt(ev.cost.totalM)}M of $${fmt(ev.cost.budgetM)}M` },
+    { role: 'ops', call: ops, why: `Launch margin ${ev.mass.marginPct.toFixed(0)}%` },
+    { role: 'engineer', call: eng, why: `Power margin ${ev.power.marginPct.toFixed(0)}%, battery ${(ev.power.batteryDod * 100).toFixed(0)}% per eclipse` },
+    { role: 'science', call: sci, why: `${(ev.data.returnFrac * 100).toFixed(0)}% of data returns` },
+  ];
+}
+
+function Countdown({ ev, name, onDone }: { ev: Evaluation; name: string; onDone: () => void }) {
+  const [t, setT] = useState(0);
+  const list = polls(ev);
+  useEffect(() => {
+    const id = setInterval(() => setT((x) => x + 1), 900);
+    return () => clearInterval(id);
+  }, []);
+  useEffect(() => { if (t >= 10) onDone(); }, [t]);
+  const count = 10 - t;
+  const tone = (c: string) => (c === 'GO' ? 'var(--green)' : c === 'CAUTION' ? 'var(--amber)' : 'var(--red)');
+  return (
+    <div className="modal-back" role="dialog" aria-label="Launch sequence">
+      <div className="panel" style={{ width: 'min(620px,100%)', textAlign: 'center' }}>
+        <div className="eyebrow">Launch sequence</div>
+        <h2 style={{ fontSize: 26 }}>{name}</h2>
+        <div className="col" style={{ margin: '14px 0', textAlign: 'left' }}>
+          {list.map((p, i) => (
+            <div key={p.role} className="member" style={{ opacity: t >= i + 1 ? 1 : 0.25, transition: 'opacity .4s' }}>
+              <span><b style={{ color: ROLES[p.role].color }}>{ROLES[p.role].name}</b><span className="muted" style={{ fontSize: 12.5 }}> · {p.why}</span></span>
+              <b style={{ color: tone(p.call) }}>{t >= i + 1 ? p.call : '…'}</b>
+            </div>
+          ))}
+        </div>
+        <div style={{ fontFamily: 'var(--head)', fontSize: 64, lineHeight: 1, color: count <= 3 ? 'var(--amber)' : 'var(--cyan)' }}>{count > 5 ? 'Polling…' : count > 0 ? `T-${count}` : 'LIFTOFF'}</div>
+        <button className="btn sm ghost" style={{ marginTop: 14 }} onClick={onDone}>Skip countdown</button>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------- live telemetry
+function Telemetry({ ev, phase, shadow, playing, speed, opsFrac, insertionDone, storageGb }: { ev: Evaluation; phase: string; shadow: boolean; playing: boolean; speed: number; opsFrac: number; insertionDone: boolean; storageGb: number }) {
+  const isOps = phase === 'science' || phase === 'end' || phase === 'commissioning';
+  const live = useRef({ shadow, playing, speed, ops: isOps });
+  live.current = { shadow, playing, speed, ops: isOps };
+  const [soc, setSoc] = useState(1);
+  const [fill, setFill] = useState(0);
+  const clock = useRef(0);
+  const socRef = useRef(1);
+  useEffect(() => {
+    const id = setInterval(() => {
+      const L = live.current;
+      if (!L.playing) return;
+      const dt = 0.1;
+      clock.current += dt * L.speed;
+      const period = 1 / (0.06 * L.speed);
+      const ef = ev.orbit.eclipseFrac;
+      if (L.ops && ef > 0) {
+        let s = socRef.current;
+        s += L.shadow ? (-ev.power.batteryDod / (ef * period)) * dt : (ev.power.batteryDod / (Math.max(0.05, 1 - ef) * period)) * dt * 1.1;
+        socRef.current = Math.max(1 - ev.power.batteryDod - 0.03, Math.min(1, s));
+        setSoc(socRef.current);
+      } else if (!L.ops) { socRef.current = 1; setSoc(1); }
+      const need = storageGb > 0 ? ev.data.storageNeedGb / storageGb : 0;
+      const ph = (clock.current % 8) / 8;
+      const max = Math.min(1.15, need);
+      setFill(L.ops ? (ph < 0.75 ? (ph / 0.75) * max : max * (1 - (ph - 0.75) / 0.25)) : 0);
+    }, 100);
+    return () => clearInterval(id);
+  }, [ev, storageGb]);
+  const items = ev.dv.items;
+  const opsDv = items.filter((i) => /Station|Drag|disposal/i.test(i.name)).reduce((s, i) => s + i.dvMs, 0);
+  const earlyDv = Math.max(0, ev.dv.totalMs - opsDv);
+  const wEarly = 1.5 * earlyDv, wOps = opsDv;
+  const used = ev.dv.totalMs <= 0 ? 0 : ((insertionDone ? wEarly : 0) + wOps * opsFrac) / Math.max(1e-9, wEarly + wOps);
+  const prop = ev.mass.propellantKg > 0 ? Math.max(0, 1 - used) : 0;
+  const ops = phase === 'science' || phase === 'end';
+  const sunlit = !shadow || ev.orbit.eclipseFrac === 0;
+  const arrayW = ops ? (sunlit ? ev.power.eolW * (1 - 0.1 * opsFrac) : 0) : 0;
+  const bar = (label: string, v: number, text: string, bad?: boolean) => (
+    <div className="meter" style={{ padding: 9 }}>
+      <div className="top"><b>{label}</b><span>{text}</span></div>
+      <div className={`bar ${bad ? 'st-bad' : v > 0.5 ? 'st-ok' : v > 0.2 ? 'st-warn' : 'st-bad'}`}><i style={{ width: `${Math.max(0, Math.min(1, v)) * 100}%`, transition: 'width .1s linear' }} /></div>
+    </div>
+  );
+  return (
+    <Panel title="Live telemetry" sub="Resource use as the mission plays">
+      <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,200px),1fr))' }}>
+        {bar('Battery charge', ev.orbit.eclipseFrac > 0 ? soc : 1, ev.orbit.eclipseFrac > 0 ? `${(soc * 100).toFixed(0)}%${shadow && ops ? ' (eclipse)' : ''}` : '100% (no eclipses)')}
+        {bar('Data recorder', 1 - fill, `${(fill * 100).toFixed(0)}% full${fill > 1 ? ' OVERFLOW' : ''}`, fill > 1)}
+        {bar('Propellant left', prop, ev.mass.propellantKg > 0 ? `${fmt(ev.mass.propellantKg * prop)} kg` : 'no propulsion')}
+        {bar('Array output', ev.power.eolW > 0 ? arrayW / ev.power.eolW : 0, `${fmt(arrayW)} W / load ${fmt(ev.power.avgLoadW)} W`)}
+      </div>
+      <div className="muted" style={{ fontSize: 12.5, marginTop: 6 }}>Battery follows the eclipses in the 3D view. The recorder fills between ground contacts and empties during them.</div>
+    </Panel>
+  );
 }

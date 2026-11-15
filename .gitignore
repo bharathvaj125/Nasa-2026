@@ -9,3 +9,5 @@ dist
 scripts/*.log
 scripts/opt-*.txt
 .claude/
+scripts/patch*.py
+scripts/flight_extra.tsx

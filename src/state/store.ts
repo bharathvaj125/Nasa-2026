@@ -26,11 +26,22 @@ export interface SavedDesign { id: string; savedAt: number; design: Design; scor
 export interface ChatMsg { id: string; from: string; name: string; text: string; ts: number; system?: boolean }
 export interface Req { id: string; fromId: string; fromName: string; to: RoleId; text: string; status: 'open' | 'accepted' | 'declined'; ts: number }
 
-interface Persist { saved: SavedDesign[]; learn: string[]; best: Record<string, number>; name: string; seenBriefing: boolean }
+export interface BoardEntry { id: string; scenarioId: string; player: string; designName: string; score: number; grade: string; difficulty: string; ts: number }
+interface Persist { saved: SavedDesign[]; learn: string[]; best: Record<string, number>; name: string; seenBriefing: boolean; board: BoardEntry[] }
 const LS = 'catalyx.v1';
 function loadPersist(): Persist {
-  try { const r = localStorage.getItem(LS); if (r) return { saved: [], learn: [], best: {}, name: '', seenBriefing: false, ...JSON.parse(r) }; } catch { /* ignore */ }
-  return { saved: [], learn: [], best: {}, name: '', seenBriefing: false };
+  try { const r = localStorage.getItem(LS); if (r) return { saved: [], learn: [], best: {}, name: '', seenBriefing: false, board: [], ...JSON.parse(r) }; } catch { /* ignore */ }
+  return { saved: [], learn: [], best: {}, name: '', seenBriefing: false, board: [] };
+}
+
+/** Parses a pasted share link (or the bare #d=... fragment) into a design. */
+export function parseShare(text: string): Design | null {
+  try {
+    const i = text.indexOf('#d=');
+    const b64 = (i >= 0 ? text.slice(i + 3) : text).trim().replace(/-/g, '+').replace(/_/g, '/');
+    const d = JSON.parse(decodeURIComponent(escape(atob(b64)))) as Design;
+    return d && d.scenarioId && d.bus ? d : null;
+  } catch { return null; }
 }
 function savePersist(p: Persist) { try { localStorage.setItem(LS, JSON.stringify(p)); } catch { /* ignore */ } }
 
@@ -53,6 +64,7 @@ interface Game {
   saved: SavedDesign[];
   learn: string[];
   best: Record<string, number>;
+  board: BoardEntry[];
   playerName: string;
   seenBriefing: boolean;
   weather: SpaceWeather;
@@ -62,6 +74,8 @@ interface Game {
   clock: number;
   fieldTs: Record<string, [number, string]>;
 
+  advancedView: boolean | null;
+  setAdvancedView(v: boolean): void;
   setPlayerName(n: string): void;
   setDifficulty(d: Difficulty): void;
   startSolo(scenarioId: string): void;
@@ -100,6 +114,7 @@ let heartbeat: ReturnType<typeof setInterval> | null = null;
 let sweep: ReturnType<typeof setInterval> | null = null;
 
 const persisted = loadPersist();
+const snapPersist = (g: Game): Persist => ({ saved: g.saved, learn: g.learn, best: g.best, name: g.playerName, seenBriefing: g.seenBriefing, board: g.board });
 
 function setPath<T extends object>(obj: T, path: string, value: unknown): T {
   const [head, tail] = path.split('.');
@@ -285,7 +300,9 @@ export const useGame = create<Game>((set, get) => {
     const best = { ...g.best };
     if (!best[r.design.scenarioId] || r.score.total > best[r.design.scenarioId]) best[r.design.scenarioId] = r.score.total;
     set({ best });
-    savePersist({ saved: g.saved, learn: g.learn, best, name: g.playerName, seenBriefing: g.seenBriefing });
+    const board = [{ id: randomId(), scenarioId: r.design.scenarioId, player: g.playerName || 'Commander', designName: r.design.name, score: r.score.total, grade: r.score.grade, difficulty: g.difficulty, ts: Date.now() }, ...g.board].sort((a, b) => b.score - a.score).slice(0, 60);
+    set({ board });
+    savePersist({ ...snapPersist(g), best, board });
   };
 
   const fromHash = (): Design | null => {
@@ -310,6 +327,7 @@ export const useGame = create<Game>((set, get) => {
     saved: persisted.saved,
     learn: persisted.learn,
     best: persisted.best,
+    board: persisted.board,
     playerName: persisted.name,
     seenBriefing: persisted.seenBriefing,
     weather: FALLBACK_WEATHER,
@@ -319,7 +337,9 @@ export const useGame = create<Game>((set, get) => {
     clock: 0,
     fieldTs: {},
 
-    setPlayerName(n) { set({ playerName: n }); const g = get(); savePersist({ saved: g.saved, learn: g.learn, best: g.best, name: n, seenBriefing: g.seenBriefing }); },
+    advancedView: null,
+    setAdvancedView(v) { set({ advancedView: v }); },
+    setPlayerName(n) { set({ playerName: n }); const g = get(); savePersist({ ...snapPersist(g), name: n }); },
     setDifficulty(d) { set({ difficulty: d, env: { ...get().env, difficulty: d } }); },
     startSolo(scenarioId) {
       transport?.close(); transport = null; set({ team: null });
@@ -389,7 +409,7 @@ export const useGame = create<Game>((set, get) => {
       const entry: SavedDesign = { id: randomId(), savedAt: Date.now(), design: { ...g.design }, score: ev.scienceFrac * 100 };
       const saved = [entry, ...g.saved].slice(0, 30);
       set({ saved });
-      savePersist({ saved, learn: g.learn, best: g.best, name: g.playerName, seenBriefing: g.seenBriefing });
+      savePersist({ ...snapPersist(g), saved });
     },
     loadDesign(id) {
       const s = get().saved.find((x) => x.id === id);
@@ -400,7 +420,7 @@ export const useGame = create<Game>((set, get) => {
       const g = get();
       const saved = g.saved.filter((s) => s.id !== id);
       set({ saved });
-      savePersist({ saved, learn: g.learn, best: g.best, name: g.playerName, seenBriefing: g.seenBriefing });
+      savePersist({ ...snapPersist(g), saved });
     },
     markCompare() { set({ usedCompare: true }); },
     markLearn(id) {
@@ -408,9 +428,9 @@ export const useGame = create<Game>((set, get) => {
       if (g.learn.includes(id)) return;
       const learn = [...g.learn, id];
       set({ learn });
-      savePersist({ saved: g.saved, learn, best: g.best, name: g.playerName, seenBriefing: g.seenBriefing });
+      savePersist({ ...snapPersist(g), learn });
     },
-    dismissBriefing() { const g = get(); set({ seenBriefing: true }); savePersist({ saved: g.saved, learn: g.learn, best: g.best, name: g.playerName, seenBriefing: true }); },
+    dismissBriefing() { const g = get(); set({ seenBriefing: true }); savePersist({ ...snapPersist(g), seenBriefing: true }); },
     loadWeather() {
       fetchSpaceWeather().then((w) => set((g) => ({ weather: w, env: { ...g.env, solarActivity: w.activity } })));
     },

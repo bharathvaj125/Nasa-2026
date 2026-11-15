@@ -1,7 +1,7 @@
 // Engineering component catalogue. Numbers are rounded, educational approximations in the spirit of
 // public references (NASA CubeSat 101, NASA Design & Develop Science Missions, SMAD). They are not
 // vendor data. Costs are in millions of US dollars.
-import type { AdcsType, BusClass, CommBand, PartsClass, PropulsionType, SolarCell, ThermalType } from '../engine/types';
+import type { AdcsType, BusClass, ComputerType, CommBand, PartsClass, PropulsionType, SolarCell, ThermalType } from '../engine/types';
 
 export interface BusClassSpec {
   id: BusClass;
@@ -87,6 +87,14 @@ export const ADCS: Record<AdcsType, AdcsSpec> = {
   magnetorquer: { id: 'magnetorquer', name: 'Magnetorquers + sun sensors', kg: 0.6, w: 1.2, costM: 0.3, pointingDeg: 5, learn: 'Pushes against Earth\'s magnetic field. Cheap, but coarse, and it only works near a planet with a magnetic field.' },
   wheels: { id: 'wheels', name: 'Reaction wheels', kg: 5, w: 10, costM: 2.5, pointingDeg: 0.1, learn: 'Spinning wheels steer the spacecraft without using propellant. Good enough for most imagers.' },
   startracker: { id: 'startracker', name: 'Star tracker + wheels', kg: 10, w: 18, costM: 6, pointingDeg: 0.01, learn: 'A camera that reads the stars gives very fine pointing, needed for narrow-beam antennas and sharp telescopes.' },
+};
+
+export interface ComputerSpec { id: ComputerType; name: string; kg: number; w: number; costM: number; compress: number; failMult: number; safeModeMult: number; learn: string }
+/** Onboard computer: the spacecraft's brain. Better computers compress or select data on board and recover from faults themselves. */
+export const COMPUTERS: Record<ComputerType, ComputerSpec> = {
+  basic: { id: 'basic', name: 'Basic flight computer', kg: 0.4, w: 2, costM: 0.3, compress: 1, failMult: 1.15, safeModeMult: 1.3, learn: 'Runs the schedule and sends raw data down as-is. Cheap, light and low power, but every byte must be downlinked and faults need ground help.' },
+  standard: { id: 'standard', name: 'Standard computer + compression', kg: 1.5, w: 6, costM: 1.5, compress: 2, failMult: 1, safeModeMult: 1, learn: 'Lossless compression halves the data volume, so the same radio returns twice as much science.' },
+  advanced: { id: 'advanced', name: 'Advanced computer with onboard processing', kg: 3.5, w: 14, costM: 5, compress: 4, failMult: 0.9, safeModeMult: 0.5, learn: 'Selects the interesting pictures onboard and sends only those (about 4x less data), and recovers from many faults on its own. Costs more power and money.' },
 };
 
 export interface PropSpec { id: PropulsionType; name: string; isp: number; baseKg: number; tankFrac: number; costM: number; costMPerKg: number; learn: string }

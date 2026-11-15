@@ -33,6 +33,7 @@ export const SCENARIOS: Scenario[] = [
       url: 'https://landsat.gsfc.nasa.gov/satellites/landsat-9/',
     },
     minBus: 0, injection: 'orbit', opsCostMult: 1,
+    critical: { keys: ['data', 'power'], why: 'Imagers produce far more data than a small satellite can downlink, and every orbit spends a third of its time in the shadow of Earth on battery power.' },
   },
   {
     id: 'lunar',
@@ -64,6 +65,7 @@ export const SCENARIOS: Scenario[] = [
       url: 'https://science.nasa.gov/mission/lro/',
     },
     minBus: 1, injection: 'tli', opsCostMult: 1,
+    critical: { keys: ['mass', 'dv'], why: 'Braking into lunar orbit burns a lot of fuel, so every kilogram of spacecraft must be justified against the capacity of the rocket.' },
   },
   {
     id: 'mars',
@@ -95,6 +97,7 @@ export const SCENARIOS: Scenario[] = [
       url: 'https://science.nasa.gov/mission/mars-reconnaissance-orbiter/',
     },
     minBus: 2, injection: 'tmi', opsCostMult: 1.2,
+    critical: { keys: ['link', 'dv'], why: 'The signal crosses hundreds of millions of kilometres, and the Mars braking burn needs about half the arrival mass as propellant.' },
   },
   {
     id: 'l2',
@@ -126,6 +129,7 @@ export const SCENARIOS: Scenario[] = [
       url: 'https://science.nasa.gov/mission/webb/',
     },
     minBus: 3, injection: 'l2', usesTelescope: true, opsCostMult: 1.5,
+    critical: { keys: ['cost', 'schedule'], why: 'A flagship observatory is limited by money and by the launch window: a bigger mirror quickly breaks both.' },
   },
 ];
 

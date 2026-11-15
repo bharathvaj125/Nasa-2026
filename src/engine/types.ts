@@ -9,6 +9,7 @@ export type BusClass = 'cubesat' | 'smallsat' | 'standard' | 'flagship';
 export type SolarCell = 'silicon' | 'gaas' | 'triple';
 export type CommBand = 'uhf' | 's' | 'x' | 'ka';
 export type AdcsType = 'magnetorquer' | 'wheels' | 'startracker';
+export type ComputerType = 'basic' | 'standard' | 'advanced';
 export type PropulsionType = 'none' | 'coldgas' | 'monoprop' | 'biprop' | 'electric';
 export type PartsClass = 'cots' | 'highrel' | 'radhard';
 export type ThermalType = 'none' | 'passive' | 'active';
@@ -163,6 +164,8 @@ export interface Scenario {
   usesTelescope?: boolean;
   /** extra ops cost multiplier */
   opsCostMult: number;
+  /** resources that are most critical for this mission, and why */
+  critical: { keys: ('mass' | 'power' | 'data' | 'link' | 'dv' | 'cost' | 'schedule' | 'reliability')[]; why: string };
 }
 
 export interface BusDesign {
@@ -175,6 +178,7 @@ export interface BusDesign {
   txW: number;
   storageGb: number;
   adcs: AdcsType;
+  computer: ComputerType;
   propulsion: PropulsionType;
   redundancy: 0 | 1 | 2;
   parts: PartsClass;
@@ -198,6 +202,8 @@ export interface Design {
   stationIds: string[];
   dsnHoursPerDay: number;
   dsnDish: DsnDish;
+  /** active Mission Control twist id, if any */
+  twist?: string;
 }
 
 export type Severity = 'error' | 'warn' | 'ok';

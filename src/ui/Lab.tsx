@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { ADCS, BANDS, BUS_CLASSES, PARTS, PROPULSION, REDUNDANCY, SOLAR_CELLS, THERMAL } from '../data/components';
+import { ADCS, BANDS, BUS_CLASSES, COMPUTERS, PARTS, PROPULSION, REDUNDANCY, SOLAR_CELLS, THERMAL } from '../data/components';
 import { INSTRUMENTS } from '../data/instruments';
+import { TWISTS, getTwist } from '../data/twists';
 import { LAUNCHERS } from '../data/launchers';
 import { ROLES } from '../data/roles';
 import { getScenario } from '../data/scenarios';
@@ -9,7 +10,7 @@ import { evaluate, fmt, launchCapacityKg } from '../engine/evaluate';
 import { EXO_TARGETS } from '../engine/nasa';
 import { marginItems } from '../engine/simulate';
 import type { BusClass, CommBand, Design } from '../engine/types';
-import { useEvaluation, useGame } from '../state/store';
+import { parseShare, useEvaluation, useGame } from '../state/store';
 import { Dashboard } from './Dashboard';
 import { GroundMap } from './GroundMap';
 import { Choice, Field, Learn, Modal, Panel, Pill, RoleTag, Slider, Toggle, useCan } from './kit';
@@ -144,6 +145,8 @@ function Concept() {
         </Learn>
       </Panel>
 
+      <TwistPanel />
+
       <Panel title="Requirements">
         <Slider path="lifeMonths" label="Planned science operations" value={design.lifeMonths} min={scn.minLifeMonths} max={scn.maxLifeMonths} step={1} unit=" months"
           hint="Longer missions collect more science but cost more to operate, wear out batteries and arrays, and need more propellant." />
@@ -162,6 +165,29 @@ function Concept() {
         </Panel>
       )}
     </div>
+  );
+}
+
+function TwistPanel() {
+  const design = useGame((s) => s.design);
+  const setField = useGame((s) => s.setField);
+  const can = useCan('twist');
+  const tw = getTwist(design.twist);
+  return (
+    <Panel title="Mission Control twist" sub="Optional. Real missions face surprises: budget reviews, supplier delays, bigger requirements. Add one and adapt your design.">
+      {tw ? (
+        <div className="card" style={{ borderColor: 'rgba(255,180,84,.6)', background: 'rgba(255,180,84,.06)' }}>
+          <b style={{ color: 'var(--amber)' }}>{tw.title}</b>
+          <div style={{ marginTop: 2 }}>{tw.text}</div>
+          <div className="mono" style={{ fontSize: 13, marginTop: 4, color: 'var(--amber)' }}>{tw.effect}</div>
+        </div>
+      ) : <div className="muted">No twist active. Healthy margins are your insurance against one.</div>}
+      <div className="row" style={{ marginTop: 10 }}>
+        <button className="btn amber" disabled={!can} onClick={() => { const pool = TWISTS.filter((t) => t.id !== design.twist); setField('twist', pool[Math.floor(Math.random() * pool.length)].id); }}>Throw me a curveball</button>
+        {tw && <button className="btn" disabled={!can} onClick={() => setField('twist', '')}>Remove twist</button>}
+        <RoleTag path="twist" />
+      </div>
+    </Panel>
   );
 }
 
@@ -265,11 +291,20 @@ function Spacecraft() {
   const scn = getScenario(design.scenarioId);
   const b = design.bus;
   const bus = BUS_CLASSES[b.busClass];
+  const advancedView = useGame((s) => s.advancedView);
+  const setAdvancedView = useGame((s) => s.setAdvancedView);
+  const difficulty = useGame((s) => s.difficulty);
+  const adv = advancedView ?? difficulty !== 'cadet';
+  const needsCooling = design.instrumentIds.some((id) => !!INSTRUMENTS.find((i) => i.id === id)?.cooling);
   const toggleInst = (id: string) => setField('instrumentIds', design.instrumentIds.includes(id) ? design.instrumentIds.filter((x) => x !== id) : [...design.instrumentIds, id]);
   const insts = INSTRUMENTS.filter((i) => scn.instrumentIds.includes(i.id));
   return (
     <div className="col" style={{ gap: 14 }}>
       <div style={{ height: 340 }}><CraftScene design={design} ev={ev} /></div>
+      <div className="card row" style={{ justifyContent: 'space-between' }}>
+        <span className="muted" style={{ fontSize: 13.5 }}><b style={{ color: 'var(--text)' }}>{adv ? 'Advanced view' : 'Simple view'}:</b> {adv ? 'every spacecraft option is available.' : 'advanced options (cell type, parts quality, redundancy, thermal) are hidden and keep their current values.'}</span>
+        <span className="row"><button className={`btn sm ${!adv ? 'primary' : ''}`} onClick={() => setAdvancedView(false)}>Simple</button><button className={`btn sm ${adv ? 'primary' : ''}`} onClick={() => setAdvancedView(true)}>Advanced</button></span>
+      </div>
 
       <Panel title="Science payload" sub="Each instrument adds science, and mass, power, data and cost.">
         <div className="opts" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(min(100%,300px),1fr))' }}>
@@ -301,7 +336,7 @@ function Spacecraft() {
           <Learn id="bus" title="Bus classes"><p>{bus.learn}</p></Learn>
         </Panel>
         <Panel title="Power">
-          <Choice path="bus.solarCell" label="Solar cells" value={b.solarCell} options={Object.values(SOLAR_CELLS).map((c) => ({ value: c.id, label: c.name, desc: c.learn, stats: [`${(c.eff * 100).toFixed(0)}% efficient`, `$${c.costMPerM2}M/m²`] }))} />
+          {adv && <Choice path="bus.solarCell" label="Solar cells" value={b.solarCell} options={Object.values(SOLAR_CELLS).map((c) => ({ value: c.id, label: c.name, desc: c.learn, stats: [`${(c.eff * 100).toFixed(0)}% efficient`, `$${c.costMPerM2}M/m²`] }))} />}
           <Slider path="bus.arrayM2" label="Solar array area" value={b.arrayM2} min={0.05} max={bus.maxArrayM2} step={0.05} log digits={2} unit=" m²" hint={`Generates ${fmt(ev.power.bolW)} W at start of life, ${fmt(ev.power.eolW)} W at the end.`} />
           <Slider path="bus.batteryWh" label="Battery" value={b.batteryWh} min={10} max={bus.maxBatteryWh} step={10} log unit=" Wh" hint={ev.orbit.eclipseFrac > 0 ? `Powers the spacecraft through ${fmt(ev.orbit.eclipseMin)} minutes of shadow every orbit. Depth of discharge: ${(ev.power.batteryDod * 100).toFixed(0)}%.` : 'Rides through short Sun-pointing losses.'} />
           <Learn id="power" title="Why batteries last longer when cycled shallow"><p>A satellite in low Earth orbit goes through about 5,000 eclipses a year. If the battery drains 30% each time it lasts many years; drain it 60% and it wears out within months. Power is the bridge between orbit and spacecraft design.</p></Learn>
@@ -314,11 +349,12 @@ function Spacecraft() {
           <Learn id="link" title="Why distance makes data so hard"><p>Radio signals spread out as they travel, so the power received falls with the <b>square</b> of distance. A Mars orbiter is a hundred thousand times farther than a satellite in low orbit: it needs a big antenna, a high frequency band, a strong transmitter, and a huge 34-70 m dish on the ground. That is why NASA's Deep Space Network exists.</p></Learn>
         </Panel>
         <Panel title="Pointing, propulsion & safety">
+          <Choice path="bus.computer" label="Onboard computer" value={b.computer ?? 'standard'} options={Object.values(COMPUTERS).map((c) => ({ value: c.id, label: c.name, desc: c.learn, stats: [`${c.compress}× less data`, `${c.w} W`] }))} hint={`Data collected after compression: ${fmt(ev.data.generatedGBday)} GB/day.`} />
           <Choice path="bus.adcs" label="Attitude control (pointing)" value={b.adcs} options={Object.values(ADCS).map((c) => ({ value: c.id, label: c.name, desc: c.learn, stats: [`${c.pointingDeg}° accuracy`] }))} />
           <Choice path="bus.propulsion" label="Propulsion" value={b.propulsion} options={Object.values(PROPULSION).map((c) => ({ value: c.id, label: c.name, desc: c.learn, stats: c.isp ? [`Isp ${c.isp} s`] : [] }))} />
-          <Choice path="bus.thermal" label="Thermal control" value={b.thermal} options={Object.values(THERMAL).map((c) => ({ value: c.id, label: c.name, desc: c.learn }))} />
-          <Choice<0 | 1 | 2> path="bus.redundancy" label="Redundancy" value={b.redundancy} options={REDUNDANCY.map((c) => ({ value: c.id as 0 | 1 | 2, label: c.name, desc: c.learn, stats: [`+${Math.round((c.massMult - 1) * 100)}% mass`, `+${Math.round((c.costMult - 1) * 100)}% cost`] }))} />
-          <Choice path="bus.parts" label="Parts quality" value={b.parts} options={Object.values(PARTS).map((c) => ({ value: c.id, label: c.name, desc: c.learn, stats: [`${c.costMult}× cost`] }))} hint={`Radiation here: ${ev.orbit.radiation.toFixed(1)}×. Survival over the mission: ${(ev.reliability.survival * 100).toFixed(0)}%.`} />
+          {(adv || needsCooling || !!scn.usesTelescope) && <Choice path="bus.thermal" label="Thermal control" value={b.thermal} options={Object.values(THERMAL).map((c) => ({ value: c.id, label: c.name, desc: c.learn }))} />}
+          {adv && <Choice<0 | 1 | 2> path="bus.redundancy" label="Redundancy" value={b.redundancy} options={REDUNDANCY.map((c) => ({ value: c.id as 0 | 1 | 2, label: c.name, desc: c.learn, stats: [`+${Math.round((c.massMult - 1) * 100)}% mass`, `+${Math.round((c.costMult - 1) * 100)}% cost`] }))} />}
+          {adv && <Choice path="bus.parts" label="Parts quality" value={b.parts} options={Object.values(PARTS).map((c) => ({ value: c.id, label: c.name, desc: c.learn, stats: [`${c.costMult}× cost`] }))} hint={`Radiation here: ${ev.orbit.radiation.toFixed(1)}×. Survival over the mission: ${(ev.reliability.survival * 100).toFixed(0)}%.`} />}
           {scn.usesTelescope && <Slider path="bus.telescopeM" label="Primary mirror diameter" value={b.telescopeM} min={0.5} max={6.5} step={0.1} digits={1} unit=" m" hint="Collecting area grows with the square of diameter: but so do mass and cost." />}
           <Learn id="propulsion" title="Isp: the miles per gallon of rockets"><p>Specific impulse (Isp) measures how long a kilogram of propellant can produce one kilogram of thrust. Electric thrusters reach 1,600 s but are very gentle; chemical engines reach 225-315 s with real punch. Fuel needed grows <b>exponentially</b> with delta-v: that is the rocket equation.</p></Learn>
         </Panel>
@@ -408,10 +444,27 @@ function CompareModal({ onClose }: { onClose: () => void }) {
   const env = useGame((s) => s.env);
   const load = useGame((s) => s.loadDesign);
   const del = useGame((s) => s.deleteDesign);
-  const rows: { id: string | null; name: string; d: Design }[] = [{ id: null, name: `${design.name} (current)`, d: design }, ...saved.filter((s) => s.design.scenarioId === design.scenarioId).map((s) => ({ id: s.id, name: s.design.name, d: s.design }))];
+  const [imported, setImported] = useState<Design[]>([]);
+  const [link, setLink] = useState('');
+  const [bad, setBad] = useState(false);
+  const rows: { id: string | null; name: string; d: Design; imp?: boolean }[] = [
+    { id: null, name: `${design.name} (current)`, d: design },
+    ...saved.filter((s) => s.design.scenarioId === design.scenarioId).map((s) => ({ id: s.id, name: s.design.name, d: s.design })),
+    ...imported.filter((d) => d.scenarioId === design.scenarioId).map((d, i) => ({ id: `imp-${i}`, name: `${d.name} (from a link)`, d, imp: true })),
+  ];
+  const addLink = () => {
+    const d = parseShare(link);
+    if (!d || d.scenarioId !== design.scenarioId) { setBad(true); return; }
+    setBad(false); setImported([...imported, d]); setLink('');
+  };
   return (
     <Modal onClose={onClose} wide>
       <div className="panel-head"><h3>Trade study: compare designs</h3><p>Save designs as you iterate, then compare them side by side. There is rarely one perfect answer.</p><span className="spacer" /><button className="btn sm" onClick={onClose}>Close</button></div>
+      <div className="row" style={{ marginBottom: 10 }}>
+        <input className="input" aria-label="Paste a shared design link" placeholder="Paste a friend's share link to compare designs for this scenario" value={link} onChange={(e) => setLink(e.target.value)} />
+        <button className="btn sm" onClick={addLink}>Add to comparison</button>
+        {bad && <span style={{ color: 'var(--red)', fontSize: 13 }}>That link is not a design for this scenario.</span>}
+      </div>
       <div style={{ overflowX: 'auto' }}>
         <table className="t">
           <thead><tr><th>Design</th><th className="num">Launch mass</th><th className="num">Cost</th><th className="num">Science</th><th className="num">Reliability</th><th className="num">Data returned</th><th className="num">Power margin</th><th>Status</th><th /></tr></thead>
@@ -424,7 +477,7 @@ function CompareModal({ onClose }: { onClose: () => void }) {
                   <td className="num">{fmt(e.mass.wetKg)} kg</td><td className="num">${fmt(e.cost.totalM)}M</td><td className="num">{(e.scienceFrac * 100).toFixed(0)}%</td>
                   <td className="num">{(e.reliability.overall * 100).toFixed(0)}%</td><td className="num">{(e.data.returnFrac * 100).toFixed(0)}%</td><td className="num">{e.power.marginPct.toFixed(0)}%</td>
                   <td>{e.flightReady ? <Pill tone="green">Ready</Pill> : <Pill tone="red">{e.constraints.filter((c) => c.severity === 'error').length} blockers</Pill>}</td>
-                  <td>{r.id && <div className="row"><button className="btn sm" onClick={() => { load(r.id!); onClose(); }}>Load</button><button className="btn sm ghost" onClick={() => del(r.id!)}>Delete</button></div>}{i === 0 && <span className="muted" style={{ fontSize: 12 }}>—</span>}</td>
+                  <td>{r.imp && <button className="btn sm" onClick={() => { useGame.setState({ design: r.d, scenarioId: r.d.scenarioId }); onClose(); }}>Load</button>}{r.id && !r.imp && <div className="row"><button className="btn sm" onClick={() => { load(r.id!); onClose(); }}>Load</button><button className="btn sm ghost" onClick={() => del(r.id!)}>Delete</button></div>}{i === 0 && <span className="muted" style={{ fontSize: 12 }}>—</span>}</td>
                 </tr>
               );
             })}

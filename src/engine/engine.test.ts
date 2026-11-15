@@ -145,3 +145,46 @@ describe('fuzzing: random designs never crash or produce NaN', () => {
     }
   });
 });
+
+describe('onboard computer and Mission Control twists', () => {
+  const base = () => defaultDesign('coastal');
+  it('a better computer compresses data (4x vs 2x vs 1x)', () => {
+    const d = base();
+    const basic = evaluate({ ...d, bus: { ...d.bus, computer: 'basic' } }).data.generatedGBday;
+    const std = evaluate({ ...d, bus: { ...d.bus, computer: 'standard' } }).data.generatedGBday;
+    const adv = evaluate({ ...d, bus: { ...d.bus, computer: 'advanced' } }).data.generatedGBday;
+    expect(basic / std).toBeCloseTo(2, 1);
+    expect(std / adv).toBeCloseTo(2, 1);
+  });
+  it('the advanced computer costs more mass, power and money', () => {
+    const d = base();
+    const std = evaluate({ ...d, bus: { ...d.bus, computer: 'standard' } });
+    const adv = evaluate({ ...d, bus: { ...d.bus, computer: 'advanced' } });
+    expect(adv.mass.cbeDryKg).toBeGreaterThan(std.mass.cbeDryKg);
+    expect(adv.power.avgLoadW).toBeGreaterThan(std.power.avgLoadW);
+    expect(adv.cost.totalM).toBeGreaterThan(std.cost.totalM);
+  });
+  it('budget-cut twist lowers the budget by 12%', () => {
+    const d = base();
+    expect(evaluate({ ...d, twist: 'budget-cut' }).cost.budgetM / evaluate(d).cost.budgetM).toBeCloseTo(0.88, 3);
+  });
+  it('capacity-cut twist lowers launch capacity by 15%', () => {
+    const d = base();
+    expect(evaluate({ ...d, twist: 'capacity-cut' }).mass.capacityKg / evaluate(d).mass.capacityKg).toBeCloseTo(0.85, 3);
+  });
+  it('solar-max twist shortens natural orbital lifetime', () => {
+    const d = { ...base(), bus: { ...base().bus, propulsion: 'none' as const }, altKm: 450, sso: false, incDeg: 51.6 };
+    expect(evaluate({ ...d, twist: 'solar-max' }).orbit.naturalLifeYears).toBeLessThan(evaluate(d).orbit.naturalLifeYears);
+  });
+  it('extended-life twist blocks launch until the plan is lengthened', () => {
+    const d = { ...base(), lifeMonths: 12, twist: 'extended-life' };
+    expect(evaluate(d).flightReady).toBe(false);
+    expect(evaluate({ ...d, lifeMonths: 60 }).constraints.some((c) => c.id === 'twist' && c.severity === 'error')).toBe(false);
+  });
+  it('old designs without a computer field still evaluate (defaults to standard)', () => {
+    const d = base();
+    const old = { ...d, bus: { ...d.bus } } as any;
+    delete old.bus.computer;
+    expect(evaluate(old).data.generatedGBday).toBeCloseTo(evaluate(d).data.generatedGBday, 6);
+  });
+});

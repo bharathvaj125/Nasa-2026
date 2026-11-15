@@ -7,7 +7,7 @@ You can click *Submit for Judging* many times; only the last one counts. Submit 
 Project CATALYX
 
 ## Summary (limit 1500 characters, about 170 words)
-CATALYX Mission Design Lab is a playable space mission design game for students and aspiring engineers. Players take a mission from idea to flight: they choose science goals, a launch vehicle and orbit, instruments, power, radio, pointing and propulsion, then fly the mission through random failures. Four scenarios (Landsat-style Earth observation, a lunar ice orbiter, a Mars relay orbiter and a Sun-Earth L2 space telescope) follow NASA's Concept Maturity Levels. Every decision has a measurable consequence on mass, power, data, cost, schedule and reliability, shown live on a mission dashboard. One to four players can collaborate with different roles (Mission Lead, Launch and Ops, Spacecraft Engineer, Science and Comms) and must negotiate. After launch, 300 simulated flights produce a score and a debrief that explains why the mission succeeded or failed. NASA data is integral: live DONKI space weather changes drag and radiation storms, and NASA's design methods and reference missions structure the game.
+CATALYX Mission Design Lab is a playable space mission design game for students and aspiring engineers. Players take a mission from idea to flight: they choose science goals, a launch vehicle and orbit, instruments, power, radio, pointing and propulsion, then fly the mission through random failures. Four scenarios (Landsat-style Earth observation, a lunar ice orbiter, a Mars relay orbiter and a Sun-Earth L2 space telescope) follow NASA's Concept Maturity Levels, and Mission Control can throw unexpected twists such as a budget cut. Every decision has a measurable consequence on mass, power, data, cost, schedule and reliability, shown live on a mission dashboard. One to four players can collaborate with different roles (Mission Lead, Launch and Ops, Spacecraft Engineer, Science and Comms) and must negotiate. After a launch countdown, the flight plays with live telemetry and a mid-mission decision of your own, then 300 simulated flights produce a score and a debrief that explains why the mission succeeded or failed. NASA data is integral: live DONKI space weather changes drag and radiation storms, and NASA's design methods and reference missions structure the game.
 
 ## Link to Project Demo (public link, 7 slides)
 Use the PDF in this repository (GitHub renders it in the browser, no login):
@@ -24,13 +24,15 @@ Source code: `https://github.com/bharathvaj125/Nasa-2026`
 
 **How it works.** The engine (src/engine) uses two-body orbital mechanics, the rocket equation to size propellant, an atmospheric-drag model, propagated ground-station contacts, a decibel link budget, eclipse and battery models, and a parametric cost and schedule model. Launching runs a narrated flight and 300 Monte Carlo flights with launch failure, insertion risk, solar storms, micrometeoroids, instrument anomalies, ground outages and cost growth against the reserve. The score blends science return, engineering margins, cost efficiency, risk, and process/teamwork, and the debrief ranks the causes of any shortfall.
 
+**Interactivity.** Live 3D spacecraft and orbit views, a launch countdown with GO/NO-GO polls from each role, real-time telemetry (battery, data recorder, propellant, power), a solar-storm decision during the flight, random Mission Control twists, a glossary, a leaderboard with a benchmark score, and design import from a friend's link.
+
 **Collaboration.** Up to four players share one mission in a room with an invite link. Each role controls different decisions, has a private priority, can chat and send requests to other roles, and only the Mission Lead can give the final go for launch.
 
 **Benefits.** Students see integrated trade-offs instead of isolated formulas. It is free, runs in a browser, has beginner, intermediate and advanced scenarios, three difficulty levels and a sandbox, and lets teams save, compare and share designs.
 
 **NASA and agency data.** Live NASA DONKI (coronal mass ejections, geomagnetic storms) sets a solar-activity factor in every flight. Mission structure uses NASA Concept Maturity Levels, the Mission Design Lab process and the four mission segments. Designs can be exported as a starter script for NASA GMAT. Reference missions: Landsat 9, LRO, MRO, JWST. Earth imagery: NASA Blue Marble.
 
-**Tools.** TypeScript, React, Vite, Three.js (3D orbit and spacecraft views), Zustand, PeerJS / WebRTC peer-to-peer rooms (cross-device teams; optional Supabase Realtime), Vitest (16 physics and evaluation tests), GitHub Pages.
+**Tools.** TypeScript, React, Vite, Three.js (3D orbit and spacecraft views), Zustand, PeerJS / WebRTC peer-to-peer rooms (cross-device teams; optional Supabase Realtime), Vitest (30 physics, evaluation, simulation and fuzz tests), GitHub Pages.
 
 **Limitations (honest).** Numbers are rounded educational approximations of public references, not mission-planning data. The GMAT export follows the documented script language but has not been executed inside GMAT.
 

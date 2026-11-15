@@ -23,18 +23,32 @@ Design a complete space mission from concept to operations. Choose science goals
 
 ## What the challenge asked for, and where to find it
 
-| Challenge idea | In the game |
+Every item in the "Objectives" and "Potential considerations" of the official challenge text, and where it lives in the game:
+
+| Challenge item | In the game |
 | --- | --- |
-| Define a mission objective and requirements | **CML 1 Concept**: pick science objectives (with success criteria), mission length |
-| Design a spacecraft, instruments, power, comms | **CML 3 Point design**: bus class, solar cells, battery, radio band, dish, ADCS, propulsion, thermal, redundancy, parts quality, telescope mirror |
-| Launch vehicle and orbit, with a compatibility check | **CML 2 Architecture**: launch-vehicle trade study; orbit altitude / inclination / sun-synchronous; capacity checked against launch mass |
-| Manage budget, mass, power, data, communications, time | Live **Mission dashboard** that updates with every decision (mass, power, data, link, delta-v, cost, schedule, reliability) |
-| Mission simulation and evaluation | 300-flight Monte Carlo plus one narrated flight with random events |
-| Team of up to four with roles | **Team rooms**: Mission Lead, Launch & Ops Lead, Spacecraft Engineer, Science & Comms Lead; role-owned controls, chat, cross-role requests, private role priorities, shared go/no-go |
-| Feedback on *why* | Post-mission **debrief** with ranked causes, limiting factors per objective, requirement verification matrix, and "Why does this matter?" learning cards throughout |
-| Scenarios, difficulty levels, random events | 4 scenarios (Earth, Moon, Mars, Sun-Earth L2), 3 difficulty levels, solar storms, dust storms, instrument and wheel failures, ground outages, cost overruns |
-| Save, share, compare designs | Save designs, side-by-side **Compare**, shareable design link, downloadable report |
-| Visualisations | 3D orbit viewer (Earth / Moon / Mars / L2), live 3D spacecraft model, ground-track map |
+| Define a mission objective and requirements | **CML 1 Concept**: choose science objectives (with partial/full success criteria) and mission length |
+| Design spacecraft: structure, power, batteries, communications, **onboard computers**, attitude control, instruments | **CML 3 Point design**: bus class (structure), solar cells and array, battery, radio band / dish / power / storage, **onboard computer (basic, standard, advanced: compression and autonomy)**, ADCS, propulsion, thermal, redundancy, parts quality, telescope mirror |
+| Scientific instruments with mass, power, cost, data generation and science value | 23 instruments across the four scenarios; each shows mass, power, data rate, cost, TRL and exactly which objectives it serves |
+| Simple vs advanced components depending on difficulty | **Simple / Advanced view** toggle (defaults by difficulty); advanced options are hidden in the simple view |
+| Several orbit options with explained characteristics | **CML 2**: altitude, inclination, sun-synchronous and local time; live period, speed, eclipse, orbits per day, latitude reach, natural lifetime and radiation |
+| Launch vehicles with capacity, cost and orbit capability, and a **mass and orbit compatibility check** | **Launch-vehicle trade study** (8 vehicles): capacity is computed for the chosen orbit and checked against launch mass (red blocker if too heavy) |
+| Resources: mass, power, budget, data, communications, time | Live **Mission dashboard** for all of them (plus delta-v, schedule and reliability); each scenario marks its **critical resources** with a star |
+| Mission simulation and evaluation system | Narrated flight plus 300 Monte Carlo flights; score from science, margins, cost, risk and process/teamwork |
+| Clear feedback on *why* a mission succeeds or fails | Debrief with ranked causes, limiting factor per objective, requirement-verification matrix, "Why does this matter?" cards, red/amber checks that explain themselves |
+| Interactive: modify the design and simulate many times | Edit freely, **re-fly** with new random events, save designs, compare them |
+| Team mode for up to four, with roles, negotiation, coordination | **Crew rooms**: 4 roles with different controls, chat, **requests between roles**, private priorities, shared go/no-go; the team score depends on how many role priorities the crew satisfies together |
+| Different difficulty levels, mission types, scenarios | 4 scenarios (Earth, Moon, Mars, L2), Cadet / Engineer / Flight Director, plus **Sandbox** |
+| Random events or unexpected mission constraints | Solar storms, dust storms, micrometeoroids, instrument and wheel failures, ground outages, cost growth, and **Mission Control twists** (budget cut, solar maximum, rocket reassigned, extended mission, supplier delay) |
+| Mission dashboards showing real-time resource consumption | **Live telemetry** during flight: battery charge through each eclipse, data recorder filling and emptying, propellant remaining, array output |
+| Interactive spacecraft visualisations | Live 3D spacecraft that changes with every decision, 3D orbit viewer (Earth, Moon, Mars, L2), ground-track map |
+| Leaderboards or mission rankings | **Leaderboard** on the home screen per scenario, with a benchmark score to beat |
+| Mission reports at the end of each simulation; post-mission analysis | Downloadable report, score ring, outcome distribution and causes of shortfall |
+| Save, share and compare designs | Save slots, side-by-side **Compare** (including designs imported from a friend's share link), share link |
+| Competitive scenarios where teams solve the same objective | Same scenario for everyone; share links and the leaderboard let teams compare results |
+| Sandbox mode without predefined constraints | **Sandbox** difficulty removes the practical budget cap |
+| Educational value: simple explanations, tutorials, visual indicators, optional learning resources | Welcome briefing, **next-step coaching**, "Why does this matter?" cards, a searchable **glossary**, links to NASA learning resources, in-flight **Mission Control decisions** where your call changes the outcome |
+| Explain *why* a decision affects performance, not just right or wrong | Every check has a "Why" and a "Try" line; the debrief names the limiting number |
 
 ## The four scenarios
 

@@ -39,7 +39,7 @@ Source code: `https://github.com/bharathvaj125/Nasa-2026`
 ## Use of Super Intelligence (SI)
 Select the options for **code generation / coding assistance** (and **documentation**) and, if a free-text box appears, use the text below. This question is not shown to judges but must be truthful.
 
-> We used a large language model coding assistant extensively: to propose and refine the game design (scenarios, scoring, roles), to write and review the source code and unit tests, to lay out the demo deck, and to draft documentation. The team chose the challenge and direction, tested the game and takes responsibility for the submission. No SI-generated images, audio or video are used; all screenshots are captures of the running game. SI use is also acknowledged in the project README.
+> We used a large language model coding assistant (SI) extensively. It proposed and refined most of the game design (scenarios, scoring, roles), wrote the source code and unit tests, laid out the demo deck and drafted the documentation. The team chose the challenge, directed the work and takes responsibility for the submission. No SI-generated images, audio or video are used; all screenshots are captures of the running game. SI use is also acknowledged in the project README.
 
 **Important.** The submission guide says SI "should not be used to come up with your idea of how to solve the challenge". Most of this concept was drafted by the SI assistant, not by you. Be honest in the SI field, and consider adding your own ideas and judgement (see the notes in the final message of this session).
 

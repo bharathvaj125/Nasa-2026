@@ -116,7 +116,7 @@ scripts        balance tools (probe + optimiser used to tune scoring)
 
 ## Super Intelligence (SI) acknowledgement
 
-In line with the Space Apps rules, we disclose that **SI tools (a large language model coding assistant) were used extensively in this project**: to propose and refine the game design (scenarios, scoring, roles), and to write and review the source code, unit tests, demo-deck layout and documentation. The team chose the challenge and the direction, tested the game, and is responsible for the submission. No NASA logos, flags or mission identifiers are used. No SI-generated images or audio are included: every screenshot in `docs/` is a capture of the running game.
+In line with the Space Apps rules, we disclose that **SI tools (a large language model coding assistant) were used extensively in this project**: to propose and refine the game design (scenarios, scoring, roles), and to write and review the source code, unit tests, demo-deck layout and documentation. The team chose the challenge, directed the work, and is responsible for the submission. No NASA logos, flags or mission identifiers are used. No SI-generated images or audio are included: every screenshot in `docs/` is a capture of the running game.
 
 ## References and credits
 

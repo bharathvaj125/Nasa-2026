@@ -75,7 +75,7 @@ export function Report() {
             <h2 style={{ fontSize: 30, margin: '4px 0' }}>{design.name}</h2>
             <div style={{ fontSize: 18, color: outcomeColor, fontWeight: 600 }}>{run.outcome === 'full' ? 'Full mission success' : run.outcome === 'partial' ? 'Partial mission success' : 'Mission did not reach minimum success'} · {score.label}</div>
             <div className="muted" style={{ marginTop: 4 }}>This flight: {run.endReason.toLowerCase()}, {(run.scienceFrac * 100).toFixed(0)}% science. Across {mc.runs} simulated flights: <b style={{ color: 'var(--text)' }}>{(mc.pFull * 100).toFixed(0)}% full</b>, {(mc.pPartial * 100).toFixed(0)}% partial, {(mc.pFail * 100).toFixed(0)}% failure.</div>
-            {result.policy?.storm && <div className="muted" style={{ fontSize: 13 }}>Your in-flight call: {result.policy.storm === 'safe' ? 'enter safe mode during solar storms' : 'ride out solar storms'}.</div>}
+            {(result.policy?.storm || result.policy?.anomaly) && <div className="muted" style={{ fontSize: 13 }}>Your in-flight calls: {[result.policy.storm && (result.policy.storm === 'safe' ? 'enter safe mode during solar storms' : 'ride out solar storms'), result.policy.anomaly && (result.policy.anomaly === 'quick' ? 'quick-restart faulty instruments' : 'diagnose instrument faults carefully')].filter(Boolean).join('; ')}.</div>}
             {best[design.scenarioId] !== undefined && <div className="muted" style={{ fontSize: 13 }}>Your best score on this scenario: {best[design.scenarioId].toFixed(0)}</div>}
             <div className="row" style={{ marginTop: 14 }}>
               <button className="btn primary" onClick={back}>Improve this design</button>

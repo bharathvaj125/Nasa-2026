@@ -1,6 +1,52 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { OWNER, ROLES } from '../data/roles';
+import { applyChanges } from '../engine/coach';
+import { evaluate } from '../engine/evaluate';
+import type { Evaluation } from '../engine/types';
 import { useGame } from '../state/store';
+
+const MINUS = '\u2212';
+const sgn = (d: number, unit: string, digits = 0) => `${d > 0 ? '+' : MINUS}${Math.abs(d).toFixed(digits)}${unit}`;
+
+/** Compares two evaluations and returns the short, human-readable consequences (used for the what-if preview). */
+export function whatIf(a: Evaluation, b: Evaluation): { text: string; good: boolean | null }[] {
+  const out: { text: string; good: boolean | null }[] = [];
+  const mass = b.mass.wetKg - a.mass.wetKg;
+  if (Math.abs(mass) >= Math.max(0.5, a.mass.wetKg * 0.01)) out.push({ text: `Launch mass ${sgn(mass, ' kg', Math.abs(mass) < 10 ? 1 : 0)}`, good: mass < 0 });
+  const pw = b.power.marginPct - a.power.marginPct;
+  if (Math.abs(pw) >= 3) out.push({ text: `Power margin ${sgn(pw, '%')}`, good: pw > 0 });
+  const cost = b.cost.totalM - a.cost.totalM;
+  if (Math.abs(cost) >= 0.5) out.push({ text: `Cost ${cost > 0 ? '+' : MINUS}$${Math.abs(cost).toFixed(Math.abs(cost) < 10 ? 1 : 0)}M`, good: cost < 0 });
+  const dr = (b.data.returnFrac - a.data.returnFrac) * 100;
+  if (Math.abs(dr) >= 3) out.push({ text: `Data returned ${sgn(dr, '%')}`, good: dr > 0 });
+  const sc = (b.scienceFrac - a.scienceFrac) * 100;
+  if (Math.abs(sc) >= 1) out.push({ text: `Science potential ${sgn(sc, '%')}`, good: sc > 0 });
+  const rel = (b.reliability.overall - a.reliability.overall) * 100;
+  if (Math.abs(rel) >= 1) out.push({ text: `Reliability ${sgn(rel, '%')}`, good: rel > 0 });
+  const dv = b.dv.totalMs - a.dv.totalMs;
+  if (Math.abs(dv) >= 20) out.push({ text: `Delta-v needed ${sgn(dv, ' m/s')}`, good: null });
+  const ea = a.constraints.filter((c) => c.severity === 'error').length;
+  const eb = b.constraints.filter((c) => c.severity === 'error').length;
+  if (eb > ea) out.push({ text: `${eb - ea} new blocker${eb - ea > 1 ? 's' : ''}`, good: false });
+  if (eb < ea) out.push({ text: `clears ${ea - eb} blocker${ea - eb > 1 ? 's' : ''}`, good: true });
+  return out;
+}
+
+/** Briefly reports how a number changed so the player sees the consequence of the last click. */
+function useDelta(num: number | undefined) {
+  const prev = useRef(num);
+  const [d, setD] = useState<{ v: number; k: number } | null>(null);
+  useEffect(() => {
+    if (num === undefined || prev.current === undefined) { prev.current = num; return; }
+    const diff = num - prev.current;
+    prev.current = num;
+    if (Math.abs(diff) < 1e-6) return;
+    const k = Date.now() + Math.random();
+    setD({ v: diff, k });
+    setTimeout(() => setD((c) => (c && c.k === k ? null : c)), 2800);
+  }, [num]);
+  return d;
+}
 
 export function Panel({ title, sub, right, children, className = '' }: { title?: ReactNode; sub?: ReactNode; right?: ReactNode; children: ReactNode; className?: string }) {
   return (
@@ -76,17 +122,33 @@ export interface Opt<T extends string | number | boolean> { value: T; label: Rea
 export function Choice<T extends string | number | boolean>({ path, label, options, value, hint, cols }: { path: string; label: ReactNode; options: Opt<T>[]; value: T; hint?: ReactNode; cols?: number }) {
   const setField = useGame((s) => s.setField);
   const can = useCan(path);
+  const design = useGame((s) => s.design);
+  const env = useGame((s) => s.env);
+  const [hover, setHover] = useState<number | null>(null);
+  const preview = useMemo(() => {
+    if (hover === null) return null;
+    const o = options[hover];
+    if (!o || o.value === value) return null;
+    try { return whatIf(evaluate(design, env), evaluate(applyChanges(design, [{ path, value: o.value }]), env)); } catch { return null; }
+  }, [hover, design, env, path, value]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <Field label={label} path={path} hint={hint}>
-      <div className="opts" style={cols ? { gridTemplateColumns: `repeat(${cols}, 1fr)` } : undefined}>
-        {options.map((o) => (
-          <button key={String(o.value)} className={`opt ${o.value === value ? 'on' : ''}`} disabled={!can} onClick={() => setField(path, o.value)} aria-pressed={o.value === value}>
+      <div className="opts" style={cols ? { gridTemplateColumns: `repeat(${cols}, 1fr)` } : undefined} onMouseLeave={() => setHover(null)}>
+        {options.map((o, i) => (
+          <button key={String(o.value)} className={`opt ${o.value === value ? 'on' : ''}`} disabled={!can} onClick={() => setField(path, o.value)} aria-pressed={o.value === value}
+            onMouseEnter={() => setHover(i)} onFocus={() => setHover(i)} onBlur={() => setHover(null)}>
             <b>{o.label}</b>
             {o.desc && <small>{o.desc}</small>}
             {o.stats && <span className="stats">{o.stats.map((s) => <span key={s}>{s}</span>)}</span>}
           </button>
         ))}
       </div>
+      {preview && (
+        <div className="whatif" role="status" aria-live="polite">
+          <span className="wl">If you choose this:</span>
+          {preview.length === 0 ? <span className="wi">almost no change to the numbers</span> : preview.map((it) => <span key={it.text} className={`wi ${it.good === null ? '' : it.good ? 'good' : 'bad'}`}>{it.text}</span>)}
+        </div>
+      )}
     </Field>
   );
 }
@@ -115,11 +177,12 @@ export function Learn({ id, title, children }: { id: string; title: string; chil
 }
 
 export type Status = 'ok' | 'warn' | 'bad' | 'info';
-export function Meter({ label, value, max, text, status, note, mark, onClick, critical }: { critical?: boolean; label: string; value: number; max: number; text: ReactNode; status: Status; note?: ReactNode; mark?: number; onClick?: () => void }) {
+export function Meter({ label, value, max, text, status, note, mark, onClick, critical, num, unit = '', better, digits = 0 }: { critical?: boolean; label: string; value: number; max: number; text: ReactNode; status: Status; note?: ReactNode; mark?: number; onClick?: () => void; num?: number; unit?: string; better?: 'up' | 'down'; digits?: number }) {
   const pct = Math.max(0, Math.min(100, (value / max) * 100));
+  const delta = useDelta(num);
   return (
     <div className="meter" onClick={onClick}>
-      <div className="top"><b>{critical && <span title="Critical resource for this mission" style={{ color: 'var(--amber)' }}>★ </span>}{label}</b><span>{text}</span></div>
+      <div className="top"><b>{critical && <span title="Critical resource for this mission" style={{ color: 'var(--amber)' }}>★ </span>}{label}</b><span>{delta && <span key={delta.k} className={`dchip ${better ? ((delta.v > 0) === (better === 'up') ? 'good' : 'bad') : ''}`}>{delta.v > 0 ? '▲' : '▼'} {sgn(delta.v, unit, digits)}</span>}{text}</span></div>
       <div className={`bar st-${status}`}><i style={{ width: `${pct}%` }} />{mark !== undefined && <u style={{ left: `${Math.min(100, (mark / max) * 100)}%` }} />}</div>
       {note && <small>{note}</small>}
     </div>

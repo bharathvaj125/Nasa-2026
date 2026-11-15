@@ -7,7 +7,7 @@ import { EXAMPLES } from '../data/examples';
 import { DEFAULT_ENV, evaluate, type Env } from '../engine/evaluate';
 import { FALLBACK_WEATHER, fetchSpaceWeather, type SpaceWeather } from '../engine/nasa';
 import { buildInsights, emptyContext, monteCarlo, rolePriorities, runFlight, scoreMission, seedFromHash, type ScoreContext } from '../engine/simulate';
-import type { Design, Difficulty, Evaluation, FlightPolicy, FlightRun, Insight, MonteCarlo, RoleId, ScoreBreakdown } from '../engine/types';
+import type { DecisionId, Design, Difficulty, Evaluation, FlightPolicy, FlightRun, Insight, MonteCarlo, RoleId, ScoreBreakdown } from '../engine/types';
 import { ACHIEVEMENTS, dailyChallenge, dateKey, streakOf, type AchContext } from '../data/achievements';
 import type { Change } from '../engine/coach';
 import { openTransport, randomCode, randomId, type MemberInfo, type Msg, type Transport } from '../team/net';
@@ -96,7 +96,7 @@ interface Game {
   backToLab(): void;
   launch(): void;
   refly(): void;
-  decide(choice: 'ride' | 'safe', fromRemote?: boolean): void;
+  decide(id: DecisionId, choice: string, fromRemote?: boolean): void;
   saveDesign(): void;
   loadExample(): void;
   loadDesign(id: string): void;
@@ -274,7 +274,7 @@ export const useGame = create<Game>((set, get) => {
         break;
       }
       case 'decide':
-        get().decide(m.d.choice, true);
+        get().decide((m.d.id ?? 'storm') as DecisionId, m.d.choice, true);
         break;
       case 'leave': {
         const members = { ...t.members };
@@ -422,15 +422,15 @@ export const useGame = create<Game>((set, get) => {
       finish(get(), res);
       if (g.team?.started) send('launch', { design: g.design, seed: res.seed, attempt, ctx: res.ctx });
     },
-    decide(choice, fromRemote = false) {
+    decide(id, choice, fromRemote = false) {
       const g = get();
       const r = g.result;
-      if (!r || r.policy?.storm) return;
-      const policy: FlightPolicy = { storm: choice };
+      if (!r || r.policy?.[id]) return;
+      const policy = { ...r.policy, [id]: choice } as FlightPolicy;
       const run = runFlight(r.design, g.env, r.ev, r.seed, true, policy);
       set({ result: { ...r, run, policy } });
-      if (run.outcome === 'full' && g.difficulty !== 'sandbox') award(['storm']);
-      if (!fromRemote && g.team?.started) send('decide', { choice });
+      if (id === 'storm' && run.outcome === 'full' && g.difficulty !== 'sandbox') award(['storm']);
+      if (!fromRemote && g.team?.started) send('decide', { id, choice });
     },
     refly() {
       const g = get();

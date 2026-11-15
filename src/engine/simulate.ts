@@ -135,6 +135,8 @@ export function runFlight(design: Design, envIn: Env, ev: Evaluation, seed: numb
   // Storm outcomes use their own random stream, so a mid-flight decision changes the storms and nothing else.
   const srng = mulberry32((seed ^ 0x9e3779b9) >>> 0);
   const safe = policy?.storm === 'safe';
+  // Instrument-anomaly responses also use their own random stream.
+  const arng = mulberry32((seed ^ 0x51ed270b) >>> 0);
   let weathered = 0;
   let stormIdx = 0;
   let safeStorms = 0;
@@ -176,6 +178,34 @@ export function runFlight(design: Design, envIn: Env, ev: Evaluation, seed: numb
     outageDays += d;
     push(t, { phase: 'science', kind: 'warn', title: 'Ground station outage', detail: `A storm or equipment failure blocks downlink for ${d.toFixed(0)} days. The recorder fills up.`, why: 'Onboard storage is insurance: it holds data until the link returns.' });
   }
+  // A scripted instrument fault every mission gives Mission Control a real decision (its own random stream, drawn first).
+  if (instruments.length && endYears > 0.25) {
+    const fi = instruments[Math.floor(arng() * instruments.length)];
+    const ft = endYears * (0.25 + 0.4 * arng());
+    let fd = 7 + arng() * 23;
+    const risk = arng();
+    const resp = policy?.anomaly;
+    push(ft - 1e-6, {
+      phase: 'science', kind: 'warn', title: `Fault alert: ${fi.name}`,
+      detail: resp ? `The instrument misbehaves. Mission Control chose a ${resp === 'quick' ? 'quick restart' : 'careful diagnosis'}.` : 'An instrument has stopped responding normally. How should the ground team respond?',
+      why: 'Operators constantly weigh speed against safety. A quick restart returns science sooner but can make a fault permanent; careful diagnosis is safe but costs more days of data.',
+      decision: resp ? undefined : {
+        id: 'anomaly', question: `${fi.name} has stopped responding. How do you recover it (for this and later faults)?`,
+        options: [
+          { id: 'quick', label: 'Quick restart', detail: 'Power-cycle now. Cuts the outage to about 40% of normal, but 1 in 5 restarts kills the instrument for good.' },
+          { id: 'careful', label: 'Careful diagnosis', detail: 'Troubleshoot first. No risk of permanent loss, but the outage lasts about 30% longer.' },
+        ],
+      },
+    });
+    if (resp === 'quick' && risk < 0.2) {
+      alive.set(fi.id, Math.min(alive.get(fi.id) ?? 1, ft / Math.max(0.01, endYears)));
+      push(ft, { phase: 'science', kind: 'bad', title: `Quick restart of ${fi.name} fails`, detail: 'The fast power-cycle corrupted the instrument. It is lost for the rest of the mission.', why: 'Skipping diagnosis saves days, but a restart can turn a recoverable fault into a permanent one.' });
+    } else {
+      if (resp === 'quick') fd *= 0.4; else if (resp === 'careful') fd *= 1.3;
+      alive.set(fi.id, (alive.get(fi.id) ?? 1) - fd / 365 / Math.max(0.01, endYears));
+      push(ft, { phase: 'science', kind: 'warn', title: `${fi.name} anomaly`, detail: `Recovered after ${fd.toFixed(0)} days${resp === 'quick' ? ' (quick restart)' : resp === 'careful' ? ' (careful diagnosis)' : ' of troubleshooting'}.`, why: 'Operators diagnose and recover from many problems, but science is lost meanwhile.' });
+    }
+  }
   for (const inst of instruments) {
     const rate = (9 - inst.trl) * 0.012 + 0.01;
     for (const t of poissonTimes(rng, rate, endYears)) {
@@ -183,9 +213,16 @@ export function runFlight(design: Design, envIn: Env, ev: Evaluation, seed: numb
         alive.set(inst.id, Math.min(alive.get(inst.id) ?? 1, t / Math.max(0.01, endYears)));
         push(t, { phase: 'science', kind: 'bad', title: `${inst.name} fails permanently`, detail: `TRL ${inst.trl} hardware. The instrument stops returning data.`, why: 'Lower technology readiness means less flight heritage and more surprises.' });
       } else {
-        const d = 7 + rng() * 23;
-        alive.set(inst.id, (alive.get(inst.id) ?? 1) - d / 365 / Math.max(0.01, endYears));
-        push(t, { phase: 'science', kind: 'warn', title: `${inst.name} anomaly`, detail: `Recovered after ${d.toFixed(0)} days of troubleshooting.`, why: 'Operators diagnose and recover from many problems, but science is lost meanwhile.' });
+        let d = 7 + rng() * 23;
+        const resp = policy?.anomaly;
+        if (resp === 'quick' && arng() < 0.2) {
+          alive.set(inst.id, Math.min(alive.get(inst.id) ?? 1, t / Math.max(0.01, endYears)));
+          push(t, { phase: 'science', kind: 'bad', title: `Quick restart of ${inst.name} fails`, detail: 'The fast power-cycle corrupted the instrument. It is lost for the rest of the mission.', why: 'Skipping diagnosis saves days, but a restart can turn a recoverable fault into a permanent one.' });
+        } else {
+          if (resp === 'quick') d *= 0.4; else if (resp === 'careful') d *= 1.3;
+          alive.set(inst.id, (alive.get(inst.id) ?? 1) - d / 365 / Math.max(0.01, endYears));
+          push(t, { phase: 'science', kind: 'warn', title: `${inst.name} anomaly`, detail: `Recovered after ${d.toFixed(0)} days${resp === 'quick' ? ' (quick restart)' : resp === 'careful' ? ' (careful diagnosis)' : ' of troubleshooting'}.`, why: 'Operators diagnose and recover from many problems, but science is lost meanwhile.' });
+        }
       }
     }
   }

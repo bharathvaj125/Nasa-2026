@@ -377,8 +377,9 @@ export interface Evaluation {
   designHash: string;
 }
 
-export interface FlightPolicy { storm?: 'ride' | 'safe' }
-export interface FlightDecision { id: 'storm'; question: string; options: { id: 'ride' | 'safe'; label: string; detail: string }[] }
+export interface FlightPolicy { storm?: 'ride' | 'safe'; anomaly?: 'quick' | 'careful' }
+export type DecisionId = keyof FlightPolicy;
+export interface FlightDecision { id: DecisionId; question: string; options: { id: string; label: string; detail: string }[] }
 
 export interface FlightEvent {
   dayOffset: number;

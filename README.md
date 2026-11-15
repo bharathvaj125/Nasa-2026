@@ -47,7 +47,7 @@ Every item in the "Objectives" and "Potential considerations" of the official ch
 | Save, share and compare designs | Save slots, side-by-side **Compare** (including designs imported from a friend's share link), share link |
 | Competitive scenarios where teams solve the same objective | Same scenario for everyone; share links and the leaderboard let teams compare results |
 | Sandbox mode without predefined constraints | **Sandbox** difficulty removes the practical budget cap |
-| Educational value: simple explanations, tutorials, visual indicators, optional learning resources | Welcome briefing, **next-step coaching**, "Why does this matter?" cards, a searchable **glossary**, links to NASA learning resources, in-flight **Mission Control decisions** where your call changes the outcome |
+| Educational value: simple explanations, tutorials, visual indicators, optional learning resources | Welcome briefing, **next-step coaching**, "Why does this matter?" cards, a searchable **glossary**, links to NASA learning resources, in-flight **Mission Control decisions** (solar storm, instrument fault) where your call changes the outcome; **what-if previews** on every option (hover to see the change in mass, power, cost, data, reliability before choosing) and **change chips** on the dashboard |
 | Explain *why* a decision affects performance, not just right or wrong | Every check has a "Why" and a "Try" line; the debrief names the limiting number; the **Mission Coach** tries about a hundred one-change variants of your design with the real evaluator and shows which raises your expected score, with before/after numbers for mass, power, data, cost and reliability, and an Apply button |
 
 ## The four scenarios

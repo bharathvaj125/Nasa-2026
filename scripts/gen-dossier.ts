@@ -89,7 +89,7 @@ const html = `<!doctype html><html><head><meta charset="utf-8"><title>CATALYX Mi
   <div class="stat"><b>23 · 8</b>instruments · launch vehicles</div>
   <div class="stat"><b>1 to 4</b>players, 4 roles, any device</div>
   <div class="stat"><b>300</b>Monte Carlo flights per score</div>
-  <div class="stat"><b>34</b>automated tests, 0 failing</div>
+  <div class="stat"><b>36</b>automated tests, 0 failing</div>
   <div class="stat"><b>${loc.toLocaleString()}</b>lines of source in ${files} files</div>
 </div>
 <h3>Elevator pitch (30 seconds)</h3>
@@ -125,7 +125,7 @@ ${table(['Step', 'What the player does', 'What the game shows'], [
   ['CML 3 Point design', 'Picks instruments, bus class, solar cells and array, battery, radio band, dish, power and storage, onboard computer, pointing system, propulsion, thermal, redundancy, parts quality.', 'Live 3D spacecraft that changes with every choice, plus the full mission dashboard.'],
   ['CML 4 Ground and review', 'Chooses ground stations (Earth) or Deep Space Network hours and dish (deep space) and checks margins.', 'Propagated contact minutes per day, data return, requirement verification.'],
   ['Launch', 'Mission Lead gives the final go. Each role reports GO / CAUTION / NO-GO in a countdown poll.', 'T-minus countdown with the checks that matter to each role.'],
-  ['Flight', 'Watches the narrated flight with live telemetry; makes a solar-storm decision (ride it out or safe mode).', 'Battery charge through eclipses, data recorder fill, propellant, array output, events with explanations.'],
+  ['Flight', 'Watches the narrated flight with live telemetry; makes two decisions: a solar storm (ride it out or safe mode) and an instrument fault (quick restart or careful diagnosis).', 'Battery charge through eclipses, data recorder fill, propellant, array output, events with explanations.'],
   ['Debrief', 'Reads the report, then improves the design or re-flies with new random events.', 'Score, outcome distribution of 300 flights, ranked causes of shortfall, requirement matrix, comparison with the real mission.'],
 ])}
 ${img('01-home.png', 'Home screen: choose a mission, a challenge level, play solo or start a team.')}
@@ -200,7 +200,9 @@ ${ul([
   '**3D visualisations:** a live 3D spacecraft that changes with each decision, a 3D orbit viewer (Earth, Moon, Mars, L2) and a ground-track map.',
   '**Launch countdown:** each role gives GO, CAUTION or NO-GO based on its own numbers, then T-minus.',
   '**Live telemetry in flight:** battery charge through each eclipse, data recorder fill and empty, propellant remaining, solar-array output.',
-  '**In-flight decision:** a solar storm pauses the mission; the player chooses safe mode (about 25% damage chance, extra safe days) or rides it out. The choice changes the rest of the flight and appears in the report. In team mode one choice reaches everyone.',
+  '**In-flight decisions:** the mission pauses twice. A solar storm: the player chooses safe mode (about 25% damage chance, extra safe days) or rides it out. An instrument fault: quick restart (outage cut to about 40%, but a 1 in 5 chance of losing the instrument) or careful diagnosis (about 30% longer outage, no risk). Each choice changes the rest of the flight and appears in the report. In team mode one choice reaches everyone.',
+  '**What-if previews:** hover (or focus) any option and see, before choosing, the change in launch mass, power margin, cost, data returned, science, reliability, delta-v and blockers. **Change chips** on the dashboard show how each number just moved (green better, red worse).',
+  '**Sound effects (optional):** countdown ticks, GO / NO-GO tones, liftoff rumble and event chimes, built with the Web Audio API; off by default.',
   '**Mission Control twists:** ' + TWISTS.map((t) => `${t.title} (${t.effect})`).join('; ') + '.',
   '**Mission Coach:** tries about a hundred one-change variations of the player\'s design with the real evaluator and lists the best four with before/after numbers and an Apply button.',
   '**Simple / Advanced view:** advanced options hidden for beginners (set by difficulty, can be toggled).',
@@ -256,7 +258,7 @@ ${table(['Area', 'Details'], [
   ['Stack', 'TypeScript, React 18, Vite 5, Three.js 0.170 (3D), Zustand (state), PeerJS 1.5 (WebRTC rooms), optional Supabase Realtime, Vitest 2.'],
   ['Architecture', 'Pure engine (src/engine: physics, evaluate, simulate, coach, gmat, nasa) with no UI imports; data catalogues (src/data); one Zustand store (src/state) for game and team state; React screens (src/ui): Home, Lab, Flight, Report, Team lobby and dock, Glossary, Coach.'],
   ['Hosting', 'Static site on GitHub Pages (no server needed); source in a public GitHub repository. Space weather and team rooms need no backend of our own.'],
-  ['Tests', `34 automated tests: orbital physics against textbook values (ISS period about 92 minutes, sun-synchronous inclination at 705 km about 98.2 degrees, lunar and Mars capture delta-v), launch-capacity checks, worked examples, a fuzz test that evaluates and simulates 600 random designs without a crash or NaN, onboard-computer and twist effects, in-flight decision, Mission Coach, daily challenge and streak logic.`],
+  ['Tests', `36 automated tests: orbital physics against textbook values (ISS period about 92 minutes, sun-synchronous inclination at 705 km about 98.2 degrees, lunar and Mars capture delta-v), launch-capacity checks, worked examples, a fuzz test that evaluates and simulates 600 random designs without a crash or NaN, onboard-computer and twist effects, both in-flight decisions, Mission Coach, daily challenge and streak logic.`],
   ['End-to-end checks', 'All four scenarios flown clean in a real browser; four isolated browser sessions played a full team game (roles, locks, chat, shared countdown, shared storm decision) and all four ended on the same score; phone-sized emulation showed no horizontal overflow or errors on every screen; live NASA DONKI fetch confirmed working (rate-limited key falls back gracefully).'],
   ['Size', `${loc.toLocaleString()} lines across ${files} source files; production build about 345 kB of JavaScript gzipped.`],
   ['Accessibility', 'Keyboard-operable controls, visible focus outlines, ARIA labels and roles, reduced-motion support, colour plus text for status (not colour alone).'],
@@ -293,7 +295,7 @@ ${[
   ['4. Simulation and learning', 'Real physics, 300 flights, and a debrief that explains why', ['Rocket equation, two-body orbits, eclipses, link budget, drag, reliability', 'Random events: solar storms, micrometeoroids, failures, ground outages, cost growth, Mission Control twists', 'Score out of 100 plus ranked causes of shortfall and a "Try" fix', 'Glossary, learn cards, requirement checks, compare with the real mission'], '07-report-top.png'],
   ['5. NASA data and methods', 'NASA is built into the game', ['Live NASA DONKI space weather changes drag and radiation storms', 'NASA Concept Maturity Levels and Mission Design Lab structure the steps', 'Reference missions: Landsat 9, LRO, MRO, JWST', 'GMAT export; NASA Blue Marble imagery'], '10-l2-orbit.png'],
   ['6. Team mode and engagement', 'Four roles, one mission, any device', ['Mission Lead, Launch and Ops, Spacecraft Engineer, Science and Comms with private priorities', 'Chat, requests between roles, shared GO/NO-GO, shared in-flight decision', 'Daily challenge, 14 badges, leaderboard with a benchmark to beat', 'Peer-to-peer rooms need no account'], '12-team-lab.png'],
-  ['7. Impact, quality and what is next', 'Free, tested, honest', ['Free in any browser; beginner to advanced; classroom-ready team play', '34 automated tests; 4-player team game and phone layout verified', 'Honest limits: educational approximations; GMAT export not yet run in GMAT', 'Next: more scenarios, classroom tools, translations. Thank you.'], '08-report-why.png'],
+  ['7. Impact, quality and what is next', 'Free, tested, honest', ['Free in any browser; beginner to advanced; classroom-ready team play', '36 automated tests; 4-player team game and phone layout verified', 'Honest limits: educational approximations; GMAT export not yet run in GMAT', 'Next: more scenarios, classroom tools, translations. Thank you.'], '08-report-why.png'],
 ].map(([t, h, b, i]) => `<div class="slide"><h4>Slide ${esc(t)}</h4><p><b>Headline:</b> ${esc(h)}</p>${ul(b as string[])}<p><b>Suggested image:</b> <code>${i}</code></p></div>`).join('')}
 <h3>Suggested speaking order for a 3-minute demo video or pitch</h3>
 ${ul(['0:00 to 0:20: the problem and the idea (slides 1 and 2).', '0:20 to 1:30: live demo: pick Lunar Ice Hunt, add an instrument, show the dashboard turn red, use the Mission Coach, launch, make the storm decision.', '1:30 to 2:10: the debrief explaining why (slide 4) and the NASA data (slide 5).', '2:10 to 2:40: team mode and engagement (slide 6).', '2:40 to 3:00: limits, what is next, thank you (slide 7).'])}

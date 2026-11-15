@@ -6,6 +6,7 @@ import { BODIES, captureDvCircular, computeContacts, eclipseFraction, naturalLif
 import { STATIONS } from '../data/stations';
 import { EXAMPLES } from '../data/examples';
 import { applyChanges, coach } from './coach';
+import { runFlight as runFlightTop } from './simulate';
 import { dailyChallenge, streakOf } from '../data/achievements';
 
 describe('physics sanity (checked against textbook values)', () => {
@@ -259,5 +260,36 @@ describe('daily challenge and streaks', () => {
     expect(streakOf(['2026-11-13', '2026-11-14'], '2026-11-15')).toBe(2);
     expect(streakOf(['2026-11-12', '2026-11-14'], '2026-11-15')).toBe(1);
     expect(streakOf([], '2026-11-15')).toBe(0);
+  });
+});
+
+describe('instrument-fault decision', () => {
+  it('offers one decision per flight and the quick option trades days for risk', () => {
+    const d = { ...EXAMPLES.lunar };
+    const ev = evaluate(d, DEFAULT_ENV);
+    let asked = 0, lostQuick = 0, lostCareful = 0, daysQuick = 0, daysCareful = 0, nQ = 0, nC = 0;
+    for (let s = 1; s <= 300; s++) {
+      const base = runFlightTop(d, DEFAULT_ENV, ev, s * 1301, true);
+      const dec = base.events.filter((e) => e.decision?.id === 'anomaly');
+      expect(dec.length).toBeLessThanOrEqual(1);
+      asked += dec.length;
+      const q = runFlightTop(d, DEFAULT_ENV, ev, s * 1301, true, { anomaly: 'quick' });
+      const c = runFlightTop(d, DEFAULT_ENV, ev, s * 1301, true, { anomaly: 'careful' });
+      expect(q.events.some((e) => e.decision?.id === 'anomaly')).toBe(false);
+      lostQuick += q.events.filter((e) => /Quick restart of/.test(e.title)).length;
+      lostCareful += c.events.filter((e) => /Quick restart of/.test(e.title)).length;
+      for (const e of q.events) { const m = e.detail.match(/after (\d+) days \(quick/); if (m) { daysQuick += +m[1]; nQ++; } }
+      for (const e of c.events) { const m = e.detail.match(/after (\d+) days \(careful/); if (m) { daysCareful += +m[1]; nC++; } }
+    }
+    expect(asked).toBeGreaterThan(20);
+    expect(lostCareful).toBe(0);
+    expect(lostQuick).toBeGreaterThan(0);
+    expect(daysQuick / nQ).toBeLessThan(daysCareful / nC);
+  });
+  it('a storm decision does not change the fault stream', () => {
+    const d = EXAMPLES.coastal;
+    const ev = evaluate(d, DEFAULT_ENV);
+    const faults = (p?: { storm: 'ride' | 'safe' }) => runFlightTop(d, DEFAULT_ENV, ev, 4242, true, p).events.filter((e) => /anomaly|fails permanently/.test(e.title)).map((e) => e.title + e.dayOffset.toFixed(1)).join('|');
+    expect(faults({ storm: 'safe' })).toBe(faults({ storm: 'ride' }));
   });
 });

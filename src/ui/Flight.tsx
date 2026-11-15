@@ -6,6 +6,7 @@ import type { Evaluation, FlightRun, RoleId } from '../engine/types';
 import { useGame } from '../state/store';
 import { LineChart } from './charts';
 import { Panel, Pill } from './kit';
+import { rumble, setSound, sfx, soundOn } from './audio';
 import { OrbitScene } from './three';
 
 const PHASE_LABEL: Record<string, string> = { development: 'Development', launch: 'Launch', cruise: 'Cruise', insertion: 'Arrival & insertion', commissioning: 'Commissioning', science: 'Science operations', end: 'End of mission' };
@@ -21,6 +22,8 @@ export function Flight() {
   const [playing, setPlaying] = useState(true);
   const [shadow, setShadow] = useState(false);
   const [intro, setIntro] = useState(true);
+  const [snd, setSnd] = useState(soundOn());
+  const lastSfx = useRef(0);
   const logRef = useRef<HTMLDivElement>(null);
   const scn = getScenario(result.design.scenarioId);
   const { run, ev } = result;
@@ -46,13 +49,18 @@ export function Flight() {
   const decisionEv = events.find((e) => e.decision);
   const decisionAt = decisionEv ? warp(decisionEv.dayOffset) : null;
   useEffect(() => {
-    if (decisionAt !== null && !intro && !result.policy?.storm && p >= decisionAt - 1e-9 && p < 0.999) { setPlaying(false); setAsked(true); }
+    if (decisionAt !== null && !intro && p >= decisionAt - 1e-9 && p < 0.999) { setPlaying(false); setAsked(true); }
   }, [p, decisionAt, intro]);
   useEffect(() => { setAsked(false); }, [run.seed]);
   // If a teammate made the call, resume this player's flight too.
-  useEffect(() => { if (result.policy?.storm && asked) { setAsked(false); setPlaying(true); } }, [result.policy?.storm]);
+  useEffect(() => { if (asked && !decisionEv) { setAsked(false); setPlaying(true); } }, [asked, decisionEv]);
   useEffect(() => { logRef.current?.scrollTo({ top: logRef.current.scrollHeight, behavior: 'smooth' }); }, [visible.length]);
   const cur = visible[visible.length - 1];
+  useEffect(() => {
+    if (intro || visible.length === 0 || visible.length <= lastSfx.current) { lastSfx.current = Math.min(lastSfx.current, visible.length); return; }
+    lastSfx.current = visible.length;
+    if (cur?.decision) sfx.alert(); else if (cur?.kind === 'bad') sfx.bad(); else if (cur?.kind === 'warn') sfx.warn(); else if (cur?.kind === 'good') sfx.good();
+  }, [visible.length]); // eslint-disable-line react-hooks/exhaustive-deps
   const phase = cur?.phase ?? 'development';
   const day = p <= 0.12 ? (p / 0.12) * devEnd : devEnd + ((p - 0.12) / 0.88) * (run.totalDays - devEnd);
   const done = p >= 1;
@@ -74,7 +82,7 @@ export function Flight() {
             <p className="muted" style={{ marginTop: 6 }}>{decisionEv.why}</p>
             <div className="opts" style={{ gridTemplateColumns: '1fr 1fr', marginTop: 14 }}>
               {decisionEv.decision.options.map((o) => (
-                <button key={o.id} className="opt" onClick={() => { decide(o.id); setAsked(false); setPlaying(true); }}>
+                <button key={o.id} className="opt" onClick={() => { decide(decisionEv.decision!.id, o.id); setAsked(false); setPlaying(true); }}>
                   <b style={{ fontSize: 17 }}>{o.label}</b><small>{o.detail}</small>
                 </button>
               ))}
@@ -87,6 +95,7 @@ export function Flight() {
       <div className="row" style={{ marginBottom: 12 }}>
         <h2 style={{ fontSize: 26 }}>{result.design.name}: <span style={{ color: 'var(--cyan)' }}>{done ? 'mission complete' : 'in flight'}</span></h2>
         <span className="spacer" />
+        <button className="btn sm ghost" aria-pressed={snd} title="Sound effects" onClick={() => { setSound(!snd); setSnd(!snd); }}>{snd ? '🔊 Sound on' : '🔇 Sound off'}</button>
         <button className="btn" onClick={() => setPlaying(!playing)} disabled={done}>{playing ? '❚❚ Pause' : '▶ Play'}</button>
         {[1, 2, 4].map((s) => <button key={s} className={`btn sm ${speed === s ? 'primary' : ''}`} onClick={() => setSpeed(s)}>{s}×</button>)}
         <button className="btn" onClick={() => setP(1)}>Skip ▸▸</button>
@@ -165,12 +174,18 @@ function polls(ev: Evaluation): { role: RoleId; call: 'GO' | 'CAUTION' | 'NO-GO'
 
 function Countdown({ ev, name, onDone }: { ev: Evaluation; name: string; onDone: () => void }) {
   const [t, setT] = useState(0);
+  const [snd, setSnd] = useState(soundOn());
   const list = polls(ev);
   useEffect(() => {
     const id = setInterval(() => setT((x) => x + 1), 900);
     return () => clearInterval(id);
   }, []);
-  useEffect(() => { if (t >= 10) onDone(); }, [t]);
+  useEffect(() => {
+    if (t >= 1 && t <= 4) { const p = list[t - 1]; p.call === 'NO-GO' ? sfx.nogo() : sfx.go(); }
+    else if (t >= 5 && t < 10) sfx.tick();
+    if (t === 10) rumble();
+    if (t >= 10) onDone();
+  }, [t]); // eslint-disable-line react-hooks/exhaustive-deps
   const count = 10 - t;
   const tone = (c: string) => (c === 'GO' ? 'var(--green)' : c === 'CAUTION' ? 'var(--amber)' : 'var(--red)');
   return (
@@ -187,7 +202,7 @@ function Countdown({ ev, name, onDone }: { ev: Evaluation; name: string; onDone:
           ))}
         </div>
         <div style={{ fontFamily: 'var(--head)', fontSize: 64, lineHeight: 1, color: count <= 3 ? 'var(--amber)' : 'var(--cyan)' }}>{count > 5 ? 'Polling…' : count > 0 ? `T-${count}` : 'LIFTOFF'}</div>
-        <button className="btn sm ghost" style={{ marginTop: 14 }} onClick={onDone}>Skip countdown</button>
+        <div className="row" style={{ justifyContent: 'center', marginTop: 14 }}><button className="btn sm ghost" aria-pressed={snd} onClick={() => { setSound(!snd); setSnd(!snd); }}>{snd ? '🔊 Sound on' : '🔇 Turn sound on'}</button><button className="btn sm ghost" onClick={onDone}>Skip countdown</button></div>
       </div>
     </div>
   );

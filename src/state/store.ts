@@ -22,6 +22,7 @@ export interface Result {
   seed: number;
   priorities: Record<RoleId, { text: string; met: boolean }>;
   policy?: FlightPolicy;
+  ctx: ScoreContext;
 }
 export interface SavedDesign { id: string; savedAt: number; design: Design; score?: number }
 export interface ChatMsg { id: string; from: string; name: string; text: string; ts: number; system?: boolean }
@@ -145,7 +146,7 @@ function buildContext(g: Game, ev: Evaluation, mc: MonteCarlo): ScoreContext {
   };
 }
 
-function computeResult(g: Game, design: Design, seed: number, representative = false): Result {
+function computeResult(g: Game, design: Design, seed: number, representative = false, ctxIn?: ScoreContext): Result {
   const ev = evaluate(design, g.env);
   const mc = monteCarlo(design, g.env, ev, 300);
   if (representative) {
@@ -157,9 +158,10 @@ function computeResult(g: Game, design: Design, seed: number, representative = f
     }
   }
   const run = runFlight(design, g.env, ev, seed, true);
-  const score = scoreMission(ev, mc, buildContext(g, ev, mc));
+  const ctx = ctxIn ?? buildContext(g, ev, mc);
+  const score = scoreMission(ev, mc, ctx);
   const insights = buildInsights(design, ev, mc);
-  return { design, ev, mc, run, score, insights, seed, priorities: rolePriorities(ev, mc) };
+  return { design, ev, mc, run, score, insights, seed, priorities: rolePriorities(ev, mc), ctx };
 }
 
 export const useGame = create<Game>((set, get) => {
@@ -258,7 +260,7 @@ export const useGame = create<Game>((set, get) => {
         break;
       }
       case 'launch': {
-        const res = computeResult(get(), m.d.design as Design, m.d.seed as number);
+        const res = computeResult(get(), m.d.design as Design, m.d.seed as number, false, m.d.ctx as ScoreContext | undefined);
         set({ design: m.d.design, result: res, screen: 'flight', attempt: m.d.attempt });
         break;
       }
@@ -376,7 +378,7 @@ export const useGame = create<Game>((set, get) => {
       const res = computeResult({ ...get() }, g.design, seed, true);
       set({ result: res, screen: 'flight' });
       finish(get(), res);
-      if (g.team?.started) send('launch', { design: g.design, seed: res.seed, attempt });
+      if (g.team?.started) send('launch', { design: g.design, seed: res.seed, attempt, ctx: res.ctx });
     },
     decide(choice, fromRemote = false) {
       const g = get();
@@ -393,9 +395,9 @@ export const useGame = create<Game>((set, get) => {
       const attempt = g.attempt + 1;
       const seed = (seedFromHash(g.result.ev.designHash) + attempt * 104729) >>> 0;
       set({ attempt });
-      const res = computeResult(get(), g.result.design, seed);
+      const res = computeResult(get(), g.result.design, seed, false, g.team?.started ? g.result.ctx : undefined);
       set({ result: res, screen: 'flight' });
-      if (g.team?.started) send('launch', { design: g.result.design, seed, attempt });
+      if (g.team?.started) send('launch', { design: g.result.design, seed, attempt, ctx: res.ctx });
     },
     loadExample() {
       const g = get();

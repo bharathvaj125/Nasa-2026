@@ -6,6 +6,7 @@ import { buildGmatScript, gmatSupported } from '../engine/gmat';
 import { marginItems } from '../engine/simulate';
 import { shareUrl, useGame, type Result } from '../state/store';
 import { Donut, HBar, Histogram, ScoreRing } from './charts';
+import { getAchievement } from '../data/achievements';
 import { Panel, Pill } from './kit';
 
 function download(name: string, text: string, type = 'text/plain') {
@@ -33,6 +34,7 @@ export function Report() {
   const refly = useGame((s) => s.refly);
   const team = useGame((s) => s.team);
   const best = useGame((s) => s.best);
+  const newAch = useGame((s) => s.newAch);
   const [copied, setCopied] = useState(false);
   if (!result) return null;
   const { ev, mc, score, run, design, insights, priorities } = result;
@@ -57,6 +59,14 @@ export function Report() {
   const outcomeColor = run.outcome === 'full' ? 'var(--green)' : run.outcome === 'partial' ? 'var(--amber)' : 'var(--red)';
   return (
     <div className="container">
+      {newAch.length > 0 && (
+        <div className="panel" role="status" style={{ borderColor: 'var(--amber)', marginBottom: 16 }}>
+          <b style={{ color: 'var(--amber)' }}>🎉 New badge{newAch.length > 1 ? 's' : ''} unlocked</b>
+          <div className="row" style={{ marginTop: 8 }}>
+            {newAch.map((id) => { const a = getAchievement(id); return a ? <div key={id} className="badge got"><span className="ic" aria-hidden>{a.icon}</span><b>{a.title}</b><small>{a.text}</small></div> : null; })}
+          </div>
+        </div>
+      )}
       <div className="panel" style={{ borderColor: outcomeColor }}>
         <div className="row" style={{ gap: 28, alignItems: 'center' }}>
           <ScoreRing value={score.total} grade={score.grade} />

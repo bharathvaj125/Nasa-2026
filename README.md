@@ -42,13 +42,13 @@ Every item in the "Objectives" and "Potential considerations" of the official ch
 | Random events or unexpected mission constraints | Solar storms, dust storms, micrometeoroids, instrument and wheel failures, ground outages, cost growth, and **Mission Control twists** (budget cut, solar maximum, rocket reassigned, extended mission, supplier delay) |
 | Mission dashboards showing real-time resource consumption | **Live telemetry** during flight: battery charge through each eclipse, data recorder filling and emptying, propellant remaining, array output |
 | Interactive spacecraft visualisations | Live 3D spacecraft that changes with every decision, 3D orbit viewer (Earth, Moon, Mars, L2), ground-track map |
-| Leaderboards or mission rankings | **Leaderboard** on the home screen per scenario, with a benchmark score to beat |
+| Leaderboards or mission rankings | **Leaderboard** on the home screen per scenario, with a benchmark score to beat, plus a **daily challenge** (same scenario and curveball for everyone each date) with a streak counter and 14 **badges** |
 | Mission reports at the end of each simulation; post-mission analysis | Downloadable report, score ring, outcome distribution and causes of shortfall |
 | Save, share and compare designs | Save slots, side-by-side **Compare** (including designs imported from a friend's share link), share link |
 | Competitive scenarios where teams solve the same objective | Same scenario for everyone; share links and the leaderboard let teams compare results |
 | Sandbox mode without predefined constraints | **Sandbox** difficulty removes the practical budget cap |
 | Educational value: simple explanations, tutorials, visual indicators, optional learning resources | Welcome briefing, **next-step coaching**, "Why does this matter?" cards, a searchable **glossary**, links to NASA learning resources, in-flight **Mission Control decisions** where your call changes the outcome |
-| Explain *why* a decision affects performance, not just right or wrong | Every check has a "Why" and a "Try" line; the debrief names the limiting number |
+| Explain *why* a decision affects performance, not just right or wrong | Every check has a "Why" and a "Try" line; the debrief names the limiting number; the **Mission Coach** tries about a hundred one-change variants of your design with the real evaluator and shows which raises your expected score, with before/after numbers for mass, power, data, cost and reliability, and an Apply button |
 
 ## The four scenarios
 

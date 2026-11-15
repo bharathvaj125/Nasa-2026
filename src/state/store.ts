@@ -8,6 +8,8 @@ import { DEFAULT_ENV, evaluate, type Env } from '../engine/evaluate';
 import { FALLBACK_WEATHER, fetchSpaceWeather, type SpaceWeather } from '../engine/nasa';
 import { buildInsights, emptyContext, monteCarlo, rolePriorities, runFlight, scoreMission, seedFromHash, type ScoreContext } from '../engine/simulate';
 import type { Design, Difficulty, Evaluation, FlightPolicy, FlightRun, Insight, MonteCarlo, RoleId, ScoreBreakdown } from '../engine/types';
+import { ACHIEVEMENTS, dailyChallenge, dateKey, streakOf, type AchContext } from '../data/achievements';
+import type { Change } from '../engine/coach';
 import { openTransport, randomCode, randomId, type MemberInfo, type Msg, type Transport } from '../team/net';
 
 export type Screen = 'home' | 'lobby' | 'lab' | 'flight' | 'report';
@@ -29,11 +31,11 @@ export interface ChatMsg { id: string; from: string; name: string; text: string;
 export interface Req { id: string; fromId: string; fromName: string; to: RoleId; text: string; status: 'open' | 'accepted' | 'declined'; ts: number }
 
 export interface BoardEntry { id: string; scenarioId: string; player: string; designName: string; score: number; grade: string; difficulty: string; ts: number }
-interface Persist { saved: SavedDesign[]; learn: string[]; best: Record<string, number>; name: string; seenBriefing: boolean; board: BoardEntry[] }
+interface Persist { saved: SavedDesign[]; learn: string[]; best: Record<string, number>; name: string; seenBriefing: boolean; board: BoardEntry[]; ach: string[]; daily: string[] }
 const LS = 'catalyx.v1';
 function loadPersist(): Persist {
-  try { const r = localStorage.getItem(LS); if (r) return { saved: [], learn: [], best: {}, name: '', seenBriefing: false, board: [], ...JSON.parse(r) }; } catch { /* ignore */ }
-  return { saved: [], learn: [], best: {}, name: '', seenBriefing: false, board: [] };
+  try { const r = localStorage.getItem(LS); if (r) return { saved: [], learn: [], best: {}, name: '', seenBriefing: false, board: [], ach: [], daily: [], ...JSON.parse(r) }; } catch { /* ignore */ }
+  return { saved: [], learn: [], best: {}, name: '', seenBriefing: false, board: [], ach: [], daily: [] };
 }
 
 /** Parses a pasted share link (or the bare #d=... fragment) into a design. */
@@ -67,6 +69,11 @@ interface Game {
   learn: string[];
   best: Record<string, number>;
   board: BoardEntry[];
+  ach: string[];
+  newAch: string[];
+  daily: string[];
+  dailyActive: string | null;
+  coachApplied: boolean;
   playerName: string;
   seenBriefing: boolean;
   weather: SpaceWeather;
@@ -81,6 +88,8 @@ interface Game {
   setPlayerName(n: string): void;
   setDifficulty(d: Difficulty): void;
   startSolo(scenarioId: string): void;
+  startDaily(): void;
+  applyCoach(changes: Change[]): boolean;
   setField(path: string, value: unknown): void;
   setStep(s: number): void;
   goHome(): void;
@@ -117,7 +126,7 @@ let heartbeat: ReturnType<typeof setInterval> | null = null;
 let sweep: ReturnType<typeof setInterval> | null = null;
 
 const persisted = loadPersist();
-const snapPersist = (g: Game): Persist => ({ saved: g.saved, learn: g.learn, best: g.best, name: g.playerName, seenBriefing: g.seenBriefing, board: g.board });
+const snapPersist = (g: Game): Persist => ({ saved: g.saved, learn: g.learn, best: g.best, name: g.playerName, seenBriefing: g.seenBriefing, board: g.board, ach: g.ach, daily: g.daily });
 
 function setPath<T extends object>(obj: T, path: string, value: unknown): T {
   const [head, tail] = path.split('.');
@@ -302,14 +311,29 @@ export const useGame = create<Game>((set, get) => {
     }, 5000);
   };
 
+  const award = (ids: string[]) => {
+    const g = get();
+    const fresh = ids.filter((id) => !g.ach.includes(id));
+    if (!fresh.length) return;
+    const ach = [...g.ach, ...fresh];
+    set({ ach, newAch: [...g.newAch, ...fresh] });
+    savePersist({ ...snapPersist(get()), ach });
+  };
+
   const finish = (g: Game, r: Result) => {
-    if (g.difficulty === 'sandbox') return; // sandbox runs do not count toward best scores
+    if (g.difficulty === 'sandbox') { award(['first-flight']); return; } // sandbox runs do not count toward best scores
     const best = { ...g.best };
     if (!best[r.design.scenarioId] || r.score.total > best[r.design.scenarioId]) best[r.design.scenarioId] = r.score.total;
     set({ best });
-    const board = [{ id: randomId(), scenarioId: r.design.scenarioId, player: g.playerName || 'Commander', designName: r.design.name, score: r.score.total, grade: r.score.grade, difficulty: g.difficulty, ts: Date.now() }, ...g.board].sort((a, b) => b.score - a.score).slice(0, 60);
+    const board = [{ id: randomId(), scenarioId: r.design.scenarioId, player: g.playerName || 'Commander', designName: r.design.name, score: r.score.total, grade: r.score.grade, difficulty: get().dailyActive === dateKey() ? 'daily' : g.difficulty, ts: Date.now() }, ...g.board].sort((a, b) => b.score - a.score).slice(0, 60);
     set({ board });
     savePersist({ ...snapPersist(g), best, board });
+    let daily = get().daily;
+    const today = dateKey();
+    const isDaily = get().dailyActive === today;
+    if (isDaily && !daily.includes(today)) { daily = [...daily, today].slice(-60); set({ daily }); savePersist({ ...snapPersist(get()), daily }); }
+    const ctx: AchContext = { r, difficulty: g.difficulty, scenariosFlown: Object.keys(best).length, learnCards: get().learn.length, team: !!g.team?.started, coachApplied: get().coachApplied, daily: isDaily, dailyStreak: streakOf(daily) };
+    award(ACHIEVEMENTS.filter((a) => a.test(ctx)).map((a) => a.id));
   };
 
   const fromHash = (): Design | null => {
@@ -335,6 +359,11 @@ export const useGame = create<Game>((set, get) => {
     learn: persisted.learn,
     best: persisted.best,
     board: persisted.board,
+    ach: persisted.ach,
+    newAch: [],
+    daily: persisted.daily,
+    dailyActive: null,
+    coachApplied: false,
     playerName: persisted.name,
     seenBriefing: persisted.seenBriefing,
     weather: FALLBACK_WEATHER,
@@ -350,7 +379,20 @@ export const useGame = create<Game>((set, get) => {
     setDifficulty(d) { set({ difficulty: d, env: { ...get().env, difficulty: d } }); },
     startSolo(scenarioId) {
       transport?.close(); transport = null; set({ team: null });
-      set({ scenarioId, design: defaultDesign(scenarioId), screen: 'lab', step: 0, visited: [0], iterations: [], result: null, attempt: 0, usedCompare: false, fieldTs: {} });
+      set({ scenarioId, design: defaultDesign(scenarioId), screen: 'lab', step: 0, visited: [0], iterations: [], result: null, attempt: 0, usedCompare: false, fieldTs: {}, dailyActive: null, newAch: [], coachApplied: false });
+    },
+    startDaily() {
+      const dc = dailyChallenge();
+      get().setDifficulty('engineer');
+      get().startSolo(dc.scenario.id);
+      set((g) => ({ design: { ...g.design, twist: dc.twist.id, name: `Daily ${dc.key}` }, dailyActive: dc.key }));
+    },
+    applyCoach(changes) {
+      const g = get();
+      if (!changes.every((c) => g.canEdit(c.path))) return false;
+      for (const c of changes) get().setField(c.path, c.value);
+      set({ coachApplied: true });
+      return true;
     },
     setField(path, value) {
       const g = get();
@@ -364,8 +406,8 @@ export const useGame = create<Game>((set, get) => {
       }
     },
     setStep(s) { set((g) => ({ step: s, visited: g.visited.includes(s) ? g.visited : [...g.visited, s] })); },
-    goHome() { transport?.close(); transport = null; if (heartbeat) clearInterval(heartbeat); if (sweep) clearInterval(sweep); set({ screen: 'home', team: null, result: null }); },
-    backToLab() { set({ screen: 'lab' }); if (get().team?.started) send('screen', { screen: 'lab' }); },
+    goHome() { transport?.close(); transport = null; if (heartbeat) clearInterval(heartbeat); if (sweep) clearInterval(sweep); set({ screen: 'home', team: null, result: null, dailyActive: null }); },
+    backToLab() { set({ screen: 'lab', newAch: [] }); if (get().team?.started) send('screen', { screen: 'lab' }); },
     launch() {
       const g = get();
       const ev = evaluate(g.design, g.env);
@@ -387,6 +429,7 @@ export const useGame = create<Game>((set, get) => {
       const policy: FlightPolicy = { storm: choice };
       const run = runFlight(r.design, g.env, r.ev, r.seed, true, policy);
       set({ result: { ...r, run, policy } });
+      if (run.outcome === 'full' && g.difficulty !== 'sandbox') award(['storm']);
       if (!fromRemote && g.team?.started) send('decide', { choice });
     },
     refly() {

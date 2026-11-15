@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { getScenario } from '../data/scenarios';
 import { fmt } from '../engine/evaluate';
 import { useEvaluation, useGame } from '../state/store';
+import { Coach } from './Coach';
 import { Meter, Pill, type Status } from './kit';
 
 const stat = (margin: number, warn = 10): Status => (margin < 0 ? 'bad' : margin < warn ? 'warn' : 'ok');
@@ -94,6 +95,8 @@ export function Dashboard({ onCompare }: { onCompare: () => void }) {
           </button>
         ))}
       </div>
+
+      <Coach />
 
       <div className="panel" style={{ padding: 12 }}>
         <div className="row">

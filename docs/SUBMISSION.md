@@ -24,7 +24,7 @@ Source code: `https://github.com/bharathvaj125/Nasa-2026`
 
 **How it works.** The engine (src/engine) uses two-body orbital mechanics, the rocket equation to size propellant, an atmospheric-drag model, propagated ground-station contacts, a decibel link budget, eclipse and battery models, and a parametric cost and schedule model. Launching runs a narrated flight and 300 Monte Carlo flights with launch failure, insertion risk, solar storms, micrometeoroids, instrument anomalies, ground outages and cost growth against the reserve. The score blends science return, engineering margins, cost efficiency, risk, and process/teamwork, and the debrief ranks the causes of any shortfall.
 
-**Interactivity.** Live 3D spacecraft and orbit views, a launch countdown with GO/NO-GO polls from each role, real-time telemetry (battery, data recorder, propellant, power), a solar-storm decision during the flight, random Mission Control twists, a glossary, a leaderboard with a benchmark score, and design import from a friend's link.
+**Interactivity.** Live 3D spacecraft and orbit views, a launch countdown with GO/NO-GO polls from each role, real-time telemetry (battery, data recorder, propellant, power), a solar-storm decision during the flight, random Mission Control twists, a glossary, a leaderboard with a benchmark score, a daily challenge with streaks and 14 badges, a Mission Coach that tests about a hundred one-change variants of your design and explains which one helps and why, and design import from a friend's link.
 
 **Collaboration.** Up to four players share one mission in a room with an invite link. Each role controls different decisions, has a private priority, can chat and send requests to other roles, and only the Mission Lead can give the final go for launch.
 
@@ -32,7 +32,7 @@ Source code: `https://github.com/bharathvaj125/Nasa-2026`
 
 **NASA and agency data.** Live NASA DONKI (coronal mass ejections, geomagnetic storms) sets a solar-activity factor in every flight. Mission structure uses NASA Concept Maturity Levels, the Mission Design Lab process and the four mission segments. Designs can be exported as a starter script for NASA GMAT. Reference missions: Landsat 9, LRO, MRO, JWST. Earth imagery: NASA Blue Marble.
 
-**Tools.** TypeScript, React, Vite, Three.js (3D orbit and spacecraft views), Zustand, PeerJS / WebRTC peer-to-peer rooms (cross-device teams; optional Supabase Realtime), Vitest (30 physics, evaluation, simulation and fuzz tests), GitHub Pages.
+**Tools.** TypeScript, React, Vite, Three.js (3D orbit and spacecraft views), Zustand, PeerJS / WebRTC peer-to-peer rooms (cross-device teams; optional Supabase Realtime), Vitest (34 physics, evaluation, simulation, coach and fuzz tests), GitHub Pages.
 
 **Limitations (honest).** Numbers are rounded educational approximations of public references, not mission-planning data. The GMAT export follows the documented script language but has not been executed inside GMAT.
 

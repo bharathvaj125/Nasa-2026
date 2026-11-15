@@ -5,6 +5,8 @@ import { DEFAULT_ENV, evaluate, launchCapacityKg } from './evaluate';
 import { BODIES, captureDvCircular, computeContacts, eclipseFraction, naturalLifetimeYears, orbitalPeriod, propellantFraction, ssoInclination } from './physics';
 import { STATIONS } from '../data/stations';
 import { EXAMPLES } from '../data/examples';
+import { applyChanges, coach } from './coach';
+import { dailyChallenge, streakOf } from '../data/achievements';
 
 describe('physics sanity (checked against textbook values)', () => {
   it('ISS-like orbit has a ~92 minute period', () => {
@@ -219,5 +221,43 @@ describe('in-flight decision (solar storm response)', () => {
       expect(a.events[warnIdx].decision?.options.length).toBe(2);
       expect(b.events.find((e) => e.title === 'Severe solar storm warning')?.decision).toBeUndefined();
     }
+  });
+});
+
+describe('mission coach', () => {
+  it('finds a real improvement for a weak design and every suggestion is honest', () => {
+    const d = defaultDesign('coastal');
+    const t0 = Date.now();
+    const tips = coach(d, DEFAULT_ENV, 4);
+    const ms = Date.now() - t0;
+    expect(ms).toBeLessThan(20000);
+    for (const s of tips) {
+      expect(s.gain).toBeGreaterThan(0.5);
+      expect(s.changes.length).toBeGreaterThan(0);
+      expect(s.after).toBeGreaterThan(s.before);
+    }
+  });
+  it('applying the top suggestion on every scenario never makes the design invalid when it was valid', () => {
+    for (const sc of SCENARIOS) {
+      const d = EXAMPLES[sc.id];
+      const base = evaluate(d, DEFAULT_ENV);
+      if (!base.flightReady) continue;
+      const tips = coach(d, DEFAULT_ENV, 2, 24);
+      for (const s of tips) expect(evaluate(applyChanges(d, s.changes), DEFAULT_ENV).flightReady).toBe(true);
+    }
+  });
+});
+
+describe('daily challenge and streaks', () => {
+  it('is deterministic for a date and rotates scenarios', () => {
+    expect(dailyChallenge('2026-11-15').scenario.id).toBe(dailyChallenge('2026-11-15').scenario.id);
+    const ids = new Set([0, 1, 2, 3].map((i) => dailyChallenge(`2026-11-${10 + i}`).scenario.id));
+    expect(ids.size).toBe(4);
+  });
+  it('counts consecutive days and survives until midnight', () => {
+    expect(streakOf(['2026-11-13', '2026-11-14', '2026-11-15'], '2026-11-15')).toBe(3);
+    expect(streakOf(['2026-11-13', '2026-11-14'], '2026-11-15')).toBe(2);
+    expect(streakOf(['2026-11-12', '2026-11-14'], '2026-11-15')).toBe(1);
+    expect(streakOf([], '2026-11-15')).toBe(0);
   });
 });

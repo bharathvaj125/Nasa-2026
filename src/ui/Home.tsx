@@ -4,6 +4,7 @@ import { DEFAULT_ENV, evaluate } from '../engine/evaluate';
 import { emptyContext, monteCarlo, scoreMission } from '../engine/simulate';
 import { SCENARIOS } from '../data/scenarios';
 import { budgetFor, fmt } from '../engine/evaluate';
+import { ACHIEVEMENTS, dailyChallenge, dateKey, streakOf } from '../data/achievements';
 import { useGame } from '../state/store';
 import type { Difficulty } from '../engine/types';
 import { Modal, Panel, Pill } from './kit';
@@ -32,6 +33,12 @@ export function Home() {
   const clearShared = useGame((s) => s.clearShared);
   const [pick, setPick] = useState(scenarioId);
   const board = useGame((s) => s.board);
+  const ach = useGame((s) => s.ach);
+  const dailyDone = useGame((s) => s.daily);
+  const startDaily = useGame((s) => s.startDaily);
+  const dc = dailyChallenge();
+  const doneToday = dailyDone.includes(dateKey());
+  const streak = streakOf(dailyDone);
   const bench = useMemo(() => {
     const d = EXAMPLES[pick];
     const ev = evaluate(d, DEFAULT_ENV);
@@ -58,6 +65,12 @@ export function Home() {
           <button className="btn primary lg" onClick={() => startSolo(pick)}>Play solo: {scn.title}</button>
           <button className="btn lg" onClick={() => createRoom(pick)}>Start a team of up to 4</button>
           <button className="btn lg ghost" onClick={() => setJoinOpen('')}>Join with a code</button>
+        </div>
+        <div className="daily">
+          <span className="eyebrow">📅 Daily challenge · {dc.key}</span>
+          <b style={{ fontSize: 16 }}>{dc.scenario.title} with a curveball: {dc.twist.title}</b>
+          <span className="muted" style={{ fontSize: 13.5 }}>{dc.twist.effect} Same mission for everyone today.{streak > 0 ? ` 🔥 ${streak}-day streak.` : ''}</span>
+          <button className="btn amber" onClick={startDaily}>{doneToday ? 'Fly it again' : 'Take the daily challenge'}</button>
         </div>
       </section>
 
@@ -116,6 +129,18 @@ export function Home() {
             {top.length === 0 ? <div className="muted" style={{ fontSize: 14 }}>No runs yet for this scenario. Fly a mission to get on the board.</div> : (
               <table className="t"><tbody>{top.map((b, i) => <tr key={b.id}><td className="num">#{i + 1}</td><td>{b.player}<div className="muted" style={{ fontSize: 12 }}>{b.designName} · {b.difficulty}</div></td><td className="num">{b.score.toFixed(0)}</td><td><Pill tone={b.score >= bench ? 'green' : undefined}>{b.grade}</Pill></td></tr>)}</tbody></table>
             )}
+          </Panel>
+
+          <Panel title="Badges" sub={`${ach.length} of ${ACHIEVEMENTS.length} unlocked`}>
+            <div className="badges">
+              {ACHIEVEMENTS.map((a) => (
+                <div key={a.id} className={`badge ${ach.includes(a.id) ? 'got' : ''}`} title={a.text}>
+                  <span className="ic" aria-hidden>{a.icon}</span>
+                  <b>{a.title}</b>
+                  <small>{a.text}</small>
+                </div>
+              ))}
+            </div>
           </Panel>
 
           <Panel title="How a mission works here">

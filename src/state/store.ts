@@ -7,7 +7,7 @@ import { EXAMPLES } from '../data/examples';
 import { DEFAULT_ENV, evaluate, type Env } from '../engine/evaluate';
 import { FALLBACK_WEATHER, fetchSpaceWeather, type SpaceWeather } from '../engine/nasa';
 import { buildInsights, emptyContext, monteCarlo, rolePriorities, runFlight, scoreMission, seedFromHash, type ScoreContext } from '../engine/simulate';
-import type { Design, Difficulty, Evaluation, FlightRun, Insight, MonteCarlo, RoleId, ScoreBreakdown } from '../engine/types';
+import type { Design, Difficulty, Evaluation, FlightPolicy, FlightRun, Insight, MonteCarlo, RoleId, ScoreBreakdown } from '../engine/types';
 import { openTransport, randomCode, randomId, type MemberInfo, type Msg, type Transport } from '../team/net';
 
 export type Screen = 'home' | 'lobby' | 'lab' | 'flight' | 'report';
@@ -21,6 +21,7 @@ export interface Result {
   insights: Insight[];
   seed: number;
   priorities: Record<RoleId, { text: string; met: boolean }>;
+  policy?: FlightPolicy;
 }
 export interface SavedDesign { id: string; savedAt: number; design: Design; score?: number }
 export interface ChatMsg { id: string; from: string; name: string; text: string; ts: number; system?: boolean }
@@ -85,6 +86,7 @@ interface Game {
   backToLab(): void;
   launch(): void;
   refly(): void;
+  decide(choice: 'ride' | 'safe', fromRemote?: boolean): void;
   saveDesign(): void;
   loadExample(): void;
   loadDesign(id: string): void;
@@ -260,6 +262,9 @@ export const useGame = create<Game>((set, get) => {
         set({ design: m.d.design, result: res, screen: 'flight', attempt: m.d.attempt });
         break;
       }
+      case 'decide':
+        get().decide(m.d.choice, true);
+        break;
       case 'leave': {
         const members = { ...t.members };
         delete members[m.from];
@@ -372,6 +377,15 @@ export const useGame = create<Game>((set, get) => {
       set({ result: res, screen: 'flight' });
       finish(get(), res);
       if (g.team?.started) send('launch', { design: g.design, seed: res.seed, attempt });
+    },
+    decide(choice, fromRemote = false) {
+      const g = get();
+      const r = g.result;
+      if (!r || r.policy?.storm) return;
+      const policy: FlightPolicy = { storm: choice };
+      const run = runFlight(r.design, g.env, r.ev, r.seed, true, policy);
+      set({ result: { ...r, run, policy } });
+      if (!fromRemote && g.team?.started) send('decide', { choice });
     },
     refly() {
       const g = get();

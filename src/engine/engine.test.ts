@@ -188,3 +188,36 @@ describe('onboard computer and Mission Control twists', () => {
     expect(evaluate(old).data.generatedGBday).toBeCloseTo(evaluate(d).data.generatedGBday, 6);
   });
 });
+
+describe('in-flight decision (solar storm response)', () => {
+  const setup = () => {
+    const d = defaultDesign('coastal');
+    d.bus = { ...d.bus, parts: 'cots' };
+    const ev = evaluate(d, DEFAULT_ENV);
+    return { d, ev };
+  };
+  it('safe mode cuts storm damage compared with riding it out', async () => {
+    const { runFlight } = await import('./simulate');
+    const { d, ev } = setup();
+    const dmg = (policy?: { storm: 'ride' | 'safe' }) => {
+      let n = 0;
+      for (let s = 1; s <= 120; s++) n += runFlight(d, DEFAULT_ENV, ev, s * 977, true, policy).events.filter((e) => /Solar storm (damages|destroys)|Computer reset/.test(e.title)).length;
+      return n;
+    };
+    expect(dmg({ storm: 'safe' })).toBeLessThan(dmg({ storm: 'ride' }));
+  });
+  it('the decision only changes what happens after the storm warning', async () => {
+    const { runFlight } = await import('./simulate');
+    const { d, ev } = setup();
+    for (const seed of [11, 222, 3333]) {
+      const a = runFlight(d, DEFAULT_ENV, ev, seed, true);
+      const b = runFlight(d, DEFAULT_ENV, ev, seed, true, { storm: 'safe' });
+      const warnIdx = a.events.findIndex((e) => e.decision);
+      if (warnIdx < 0) continue;
+      const before = (r: typeof a) => r.events.slice(0, warnIdx).map((e) => e.title + e.dayOffset);
+      expect(before(b)).toEqual(before(a));
+      expect(a.events[warnIdx].decision?.options.length).toBe(2);
+      expect(b.events.find((e) => e.title === 'Severe solar storm warning')?.decision).toBeUndefined();
+    }
+  });
+});

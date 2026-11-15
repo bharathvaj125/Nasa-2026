@@ -5,7 +5,7 @@ import { getLauncher } from '../data/launchers';
 import { getScenario } from '../data/scenarios';
 import { clamp } from './physics';
 import { evaluate, fmt, twistEnv, type Env } from './evaluate';
-import type { Design, Evaluation, FlightEvent, FlightRun, Insight, MonteCarlo, RoleId, ScoreBreakdown } from './types';
+import type { Design, Evaluation, FlightEvent, FlightPolicy, FlightRun, Insight, MonteCarlo, RoleId, ScoreBreakdown } from './types';
 
 // ---------------------------------------------------------------- random numbers
 export function mulberry32(seed: number) {
@@ -44,7 +44,7 @@ interface RunInternal extends FlightRun {
 
 const DAY = 365.25;
 
-export function runFlight(design: Design, envIn: Env, ev: Evaluation, seed: number, narrate = true): RunInternal {
+export function runFlight(design: Design, envIn: Env, ev: Evaluation, seed: number, narrate = true, policy?: FlightPolicy): RunInternal {
   const env = twistEnv(design, envIn);
   const rng = mulberry32(seed);
   const scn = getScenario(design.scenarioId);
@@ -132,21 +132,42 @@ export function runFlight(design: Design, envIn: Env, ev: Evaluation, seed: numb
   const push = (t: number, e: Omit<FlightEvent, 'dayOffset'>) => timeline.push({ t, ev: { ...e, dayOffset: opsStart + t * DAY } });
 
   const stormRate = 1.5 * Math.pow(env.solarActivity, 0.8);
+  // Storm outcomes use their own random stream, so a mid-flight decision changes the storms and nothing else.
+  const srng = mulberry32((seed ^ 0x9e3779b9) >>> 0);
+  const safe = policy?.storm === 'safe';
   let weathered = 0;
+  let stormIdx = 0;
+  let safeStorms = 0;
   for (const t of poissonTimes(rng, stormRate, endYears)) {
-    const p = clamp(0.1 * parts.radSens * ev.orbit.radiation * (0.6 + 0.4 * red.failMult), 0, 0.85);
-    if (rng() < p) {
-      const r = rng();
+    const p0 = clamp(0.1 * parts.radSens * ev.orbit.radiation * (0.6 + 0.4 * red.failMult), 0, 0.85);
+    const p = safe ? p0 * 0.25 : p0;
+    if (stormIdx++ === 0) {
+      push(t - 1e-6, {
+        phase: 'science', kind: 'warn', title: 'Severe solar storm warning',
+        detail: policy?.storm ? `A strong particle storm arrives. Mission Control chose to ${safe ? 'put the spacecraft into safe mode' : 'ride it out with instruments on'}.` : 'Space-weather alert: a strong particle storm reaches your orbit within hours. How should Mission Control respond?',
+        why: 'Solar storms hurl fast particles at spacecraft. Powering down protects electronics, but costs science time. The right call depends on how well your parts can take radiation.',
+        decision: policy?.storm ? undefined : {
+          id: 'storm', question: 'A severe solar storm is arriving. What do you do for this and later storms?',
+          options: [
+            { id: 'ride', label: 'Ride it out', detail: 'Keep every instrument running. No science lost, but full risk of radiation damage.' },
+            { id: 'safe', label: 'Enter safe mode', detail: 'Power down instruments during storms. Cuts damage risk by about 75% but loses about 2 days of science per storm.' },
+          ],
+        },
+      });
+    }
+    if (safe) { safeDays += 2; safeStorms++; }
+    if (srng() < p) {
+      const r = srng();
       if (r < 0.5) { powerMult *= 0.93; push(t, { phase: 'science', kind: 'warn', title: 'Solar storm damages solar cells', detail: 'Energetic particles permanently reduce array output by 7%.', why: `${parts.name} are ${parts.radSens > 2 ? 'vulnerable to' : 'moderately exposed to'} radiation. Radiation-hardened parts and shielding avoid this.` }); }
       else if (r < 0.75 && instruments.length) {
-        const inst = instruments[Math.floor(rng() * instruments.length)];
+        const inst = instruments[Math.floor(srng() * instruments.length)];
         alive.set(inst.id, Math.min(alive.get(inst.id) ?? 1, t / Math.max(0.01, endYears)));
         push(t, { phase: 'science', kind: 'bad', title: `Solar storm destroys ${inst.name}`, detail: 'A particle strike fried the instrument electronics.', why: 'Sensitive detectors are the first to suffer in a storm. Better parts and redundancy reduce the chance.' });
-      } else { const d = (3 + rng() * 7) * COMPUTERS[design.bus.computer ?? 'standard'].safeModeMult; safeDays += d; push(t, { phase: 'science', kind: 'warn', title: 'Computer reset: safe mode', detail: `The spacecraft rebooted and spent ${d.toFixed(0)} days in safe mode before recovery.`, why: 'Safe mode turns off instruments to protect the spacecraft until ground controllers can investigate.' }); }
+      } else { const d = (3 + srng() * 7) * COMPUTERS[design.bus.computer ?? 'standard'].safeModeMult; safeDays += d; push(t, { phase: 'science', kind: 'warn', title: 'Computer reset: safe mode', detail: `The spacecraft rebooted and spent ${d.toFixed(0)} days in safe mode before recovery.`, why: 'Safe mode turns off instruments to protect the spacecraft until ground controllers can investigate.' }); }
     } else weathered++;
   }
   if (weathered > 0)
-    push(endYears * 0.5, { phase: 'science', kind: 'good', title: `${weathered} solar storm${weathered > 1 ? 's' : ''} weathered`, detail: 'Strong flares passed with no lasting damage.', why: `Your ${parts.name.toLowerCase()} and orbit kept radiation effects manageable.` });
+    push(endYears * 0.5, { phase: 'science', kind: 'good', title: `${weathered} solar storm${weathered > 1 ? 's' : ''} weathered`, detail: safe ? `Safe mode protected the spacecraft (about ${safeStorms * 2} days of science were given up).` : 'Strong flares passed with no lasting damage.', why: `Your ${parts.name.toLowerCase()} and orbit kept radiation effects manageable.` });
   for (const t of poissonTimes(rng, 0.4 * (1 + design.bus.arrayM2 / 10), endYears)) {
     if (rng() < 0.2) { powerMult *= 0.97; push(t, { phase: 'science', kind: 'warn', title: 'Micrometeoroid strike', detail: 'A tiny rock punctured a solar panel: -3% power.', why: 'Space is not empty: dust grains hit at several km/s.' }); }
   }

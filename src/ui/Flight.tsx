@@ -14,6 +14,8 @@ const PLAY_SECONDS = 34;
 export function Flight() {
   const result = useGame((s) => s.result)!;
   const setScreen = useGame((s) => s.backToLab);
+  const decide = useGame((s) => s.decide);
+  const [asked, setAsked] = useState(false);
   const [p, setP] = useState(0);
   const [speed, setSpeed] = useState(1);
   const [playing, setPlaying] = useState(true);
@@ -41,6 +43,14 @@ export function Flight() {
   }, [playing, speed, run.seed]);
 
   const visible = events.filter((e) => warp(e.dayOffset) <= p + 1e-9);
+  const decisionEv = events.find((e) => e.decision);
+  const decisionAt = decisionEv ? warp(decisionEv.dayOffset) : null;
+  useEffect(() => {
+    if (decisionAt !== null && !intro && !result.policy?.storm && p >= decisionAt - 1e-9 && p < 0.999) { setPlaying(false); setAsked(true); }
+  }, [p, decisionAt, intro]);
+  useEffect(() => { setAsked(false); }, [run.seed]);
+  // If a teammate made the call, resume this player's flight too.
+  useEffect(() => { if (result.policy?.storm && asked) { setAsked(false); setPlaying(true); } }, [result.policy?.storm]);
   useEffect(() => { logRef.current?.scrollTo({ top: logRef.current.scrollHeight, behavior: 'smooth' }); }, [visible.length]);
   const cur = visible[visible.length - 1];
   const phase = cur?.phase ?? 'development';
@@ -56,6 +66,23 @@ export function Flight() {
 
   return (
     <div className="container">
+      {asked && decisionEv?.decision && (
+        <div className="modal-back" role="dialog" aria-label="Mission Control decision">
+          <div className="panel" style={{ width: 'min(680px,100%)' }}>
+            <div className="eyebrow">Mission Control decision</div>
+            <h2 style={{ fontSize: 24 }}>{decisionEv.decision.question}</h2>
+            <p className="muted" style={{ marginTop: 6 }}>{decisionEv.why}</p>
+            <div className="opts" style={{ gridTemplateColumns: '1fr 1fr', marginTop: 14 }}>
+              {decisionEv.decision.options.map((o) => (
+                <button key={o.id} className="opt" onClick={() => { decide(o.id); setAsked(false); setPlaying(true); }}>
+                  <b style={{ fontSize: 17 }}>{o.label}</b><small>{o.detail}</small>
+                </button>
+              ))}
+            </div>
+            <div className="faint" style={{ fontSize: 12.5, marginTop: 10 }}>Your call changes this flight. The score still comes from the average of 300 flights using the default response.</div>
+          </div>
+        </div>
+      )}
       {intro && <Countdown ev={ev} name={result.design.name} onDone={() => { setIntro(false); setPlaying(true); }} />}
       <div className="row" style={{ marginBottom: 12 }}>
         <h2 style={{ fontSize: 26 }}>{result.design.name}: <span style={{ color: 'var(--cyan)' }}>{done ? 'mission complete' : 'in flight'}</span></h2>

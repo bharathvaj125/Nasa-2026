@@ -5,7 +5,7 @@
 //  3. BroadcastChannel: same-browser tabs only (used when the others cannot connect).
 import type { RoleId } from '../engine/types';
 
-export type MsgKind = 'hello' | 'sync' | 'state' | 'patch' | 'role' | 'ready' | 'req' | 'resp' | 'chat' | 'launch' | 'screen' | 'leave';
+export type MsgKind = 'hello' | 'sync' | 'state' | 'patch' | 'role' | 'ready' | 'req' | 'resp' | 'chat' | 'launch' | 'screen' | 'decide' | 'leave';
 export interface Msg { k: MsgKind; from: string; ts: number; d: any }
 
 export interface Transport {

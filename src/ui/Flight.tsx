@@ -16,7 +16,7 @@ export function Flight() {
   const result = useGame((s) => s.result)!;
   const setScreen = useGame((s) => s.backToLab);
   const decide = useGame((s) => s.decide);
-  const [asked, setAsked] = useState(false);
+  const [asked, setAsked] = useState<string | null>(null);
   const [p, setP] = useState(0);
   const [speed, setSpeed] = useState(1);
   const [playing, setPlaying] = useState(true);
@@ -49,11 +49,11 @@ export function Flight() {
   const decisionEv = events.find((e) => e.decision);
   const decisionAt = decisionEv ? warp(decisionEv.dayOffset) : null;
   useEffect(() => {
-    if (decisionAt !== null && !intro && p >= decisionAt - 1e-9 && p < 0.999) { setPlaying(false); setAsked(true); }
+    if (decisionAt !== null && decisionEv?.decision && !intro && p >= decisionAt - 1e-9 && p < 0.999) { setPlaying(false); setAsked(decisionEv.decision.id); }
   }, [p, decisionAt, intro]);
-  useEffect(() => { setAsked(false); }, [run.seed]);
+  useEffect(() => { setAsked(null); }, [run.seed]);
   // If a teammate made the call, resume this player's flight too.
-  useEffect(() => { if (asked && !decisionEv) { setAsked(false); setPlaying(true); } }, [asked, decisionEv]);
+  useEffect(() => { if (asked && decisionEv?.decision?.id !== asked) { setAsked(null); setPlaying(true); } }, [asked, decisionEv]);
   useEffect(() => { logRef.current?.scrollTo({ top: logRef.current.scrollHeight, behavior: 'smooth' }); }, [visible.length]);
   const cur = visible[visible.length - 1];
   useEffect(() => {
@@ -74,7 +74,7 @@ export function Flight() {
 
   return (
     <div className="container">
-      {asked && decisionEv?.decision && (
+      {asked && decisionEv?.decision && asked === decisionEv.decision.id && (
         <div className="modal-back" role="dialog" aria-label="Mission Control decision">
           <div className="panel" style={{ width: 'min(680px,100%)' }}>
             <div className="eyebrow">Mission Control decision</div>
@@ -82,7 +82,7 @@ export function Flight() {
             <p className="muted" style={{ marginTop: 6 }}>{decisionEv.why}</p>
             <div className="opts" style={{ gridTemplateColumns: '1fr 1fr', marginTop: 14 }}>
               {decisionEv.decision.options.map((o) => (
-                <button key={o.id} className="opt" onClick={() => { decide(decisionEv.decision!.id, o.id); setAsked(false); setPlaying(true); }}>
+                <button key={o.id} className="opt" onClick={() => { decide(decisionEv.decision!.id, o.id); setAsked(null); setPlaying(true); }}>
                   <b style={{ fontSize: 17 }}>{o.label}</b><small>{o.detail}</small>
                 </button>
               ))}
